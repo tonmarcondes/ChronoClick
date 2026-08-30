@@ -16,8 +16,11 @@
       <dt><code>{value}</code></dt><dd>Valor digitado ou selecionado. Senhas são substituídas por [REDACTED].</dd>
       <dt><code>{texto-iluminado}</code> ou <code>{highlighted-text}</code></dt><dd>Texto selecionado na página.</dd>
       <dt><code>{pageName}</code></dt><dd>Nome da página, normalmente o título principal ou título da aba.</dd>
+      <dt><code>{url}</code></dt><dd>URL da página. Exemplo: Insira a url {url} e acesse a página {pageName}.</dd>
       <dt><code>{scrollX}</code> / <code>{scrollY}</code></dt><dd>Posição horizontal / vertical da rolagem, em pixels.</dd>
     </dl>
+    <h3>Título do documento</h3>
+    <p>Use <code>{pageName}</code> e <code>{url}</code> para a primeira página gravada. As variáveis da ação, como <code>{name}</code> e <code>{value}</code>, usam o primeiro passo. Os contadores <code>{sectionNumber}</code>, <code>{screenNumber}</code> e <code>{tableNumber}</code> valem 1 no título geral. Exemplo: <code>Manual — {pageName}</code>.</p>
     <h3>Título da seção e legendas de print/tabela</h3>
     <p><code>{sectionNumber}</code>: número da seção; <code>{screenNumber}</code>: número do print; <code>{tableNumber}</code>: número da tabela; <code>{pageName}</code>: nome da página.</p>
     <h3>Pasta raiz — variáveis de ambiente</h3>
@@ -34,7 +37,9 @@
     <label class="field">Título da seção<input id="sectionTitlePattern"></label>
     <label class="field">Legenda do print<input id="screenshotCaptionPattern"></label>
     <label class="field">Legenda da tabela<input id="tableCaptionPattern"></label>
-    <label class="field">Agrupamento, em segundos<input id="groupWindow" type="number" min="1"></label>
+    <label><input id="showScreenshotCaption" type="checkbox"> Mostrar legenda das imagens</label>
+    <label><input id="showTableCaption" type="checkbox"> Mostrar legenda das tabelas</label>
+    <label class="field">Intervalo máximo entre passos agrupados (segundos; 0 = sem limite)<input id="groupWindow" type="number" min="0"></label>
     <label class="field">Pasta raiz para novos projetos<input id="projectRoot" placeholder="${HOME}/sistemas/cronoPrint"></label>
   </div></section>
 
@@ -47,6 +52,7 @@
     <label class="field">Pausa da digitação (ms)<input data-recording="typingIdleMs" type="number" min="300"></label>
     <label class="field">Incluir texto digitado<select data-recording="captureText" data-boolean><option value="true">Sim (exceto senhas e campos privados)</option><option value="false">Não</option></select></label>
     <label class="field">Capturar entrada nas páginas<select data-recording="pageViews" data-boolean><option value="true">Sim</option><option value="false">Não</option></select></label>
+    <label class="field">Evitar entradas repetidas em cada site<select data-recording="skipInitialOriginPages" data-boolean><option value="true">Sim (ignorar pastas, rotas e parâmetros)</option><option value="false">Não, registrar cada URL</option></select></label>
     <label class="field">Print no Word<select data-recording="separateScreens" data-boolean><option value="true">Um para cada evento mantido</option><option value="false">Agrupar telas semelhantes</option></select></label>
     <label class="field">Verificar aba, URL e posição<select data-recording="validateCapture" data-boolean><option value="true">Sim (recomendado)</option><option value="false">Não</option></select></label>
     <label class="field">Links comuns: aguardar print antes de navegar<select data-recording="delayLinkNavigation" data-boolean><option value="true">Sim (recomendado)</option><option value="false">Não</option></select></label>
@@ -66,6 +72,8 @@
   <section class="card"><h2>Textos automáticos</h2><p class="muted">Use <code>{name}</code>, <code>{value}</code> e <code>{texto-iluminado}</code> como variáveis.</p><div class="grid">
     <label class="field">Clique em botão<input data-action-text="click-button"></label>
     <label class="field">Clique em link<input data-action-text="click-link"></label>
+    <label class="field">Link com aparência de botão<input data-action-text="click-styled-button"></label>
+    <label class="field">Item de menu<input data-action-text="click-menu"></label>
     <label class="field">Clique em campo<input data-action-text="click-field"></label>
     <label class="field">Clique genérico<input data-action-text="click"></label>
     <label class="field">Duplo clique<input data-action-text="double-click"></label>
@@ -92,6 +100,7 @@
     <label class="field">Cor do nome do componente<input id="componentColor" type="color"></label>
     <label class="field">Nome do componente<select id="componentBold"><option value="true">Negrito</option><option value="false">Normal</option></select></label>
     <label class="field">Cor dos links textuais<input id="linkColor" type="color"></label>
+    <label class="field">Usar cor dos links definida em<select id="linkColorSource"><option value="settings">Configuração acima</option><option value="css">CSS do projeto</option></select></label>
     <label class="field">Altura do microprint (pt)<input id="microprintHeightPt" type="number" min="6" max="72"></label>
     <label class="field">Largura máxima do microprint (pt)<input id="microprintMaxWidthPt" type="number" min="12" max="240"></label>
     <label class="field">Proporção do microprint<select id="microprintPreserveAspect"><option value="true">Manter proporção</option><option value="false">Usar altura e largura exatas</option></select></label>
@@ -105,5 +114,6 @@
   <div id="captureWarnings" class="error"></div>
   <p id="status" class="muted"></p>
   <p><a id="documentLink" href="#" hidden>Abrir DOCX gerado</a></p>
+  <script src="recording-policy.js"></script>
   <script src="review.js"></script>
 </main></body></html>

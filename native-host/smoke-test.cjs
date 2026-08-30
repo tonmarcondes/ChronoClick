@@ -31,7 +31,7 @@ function dataUrl(file, mime) { return `data:${mime};base64,${fs.readFileSync(fil
     documentTitle: "Teste ChronoClick", sectionTitlePattern: "{sectionNumber}. {pageName}", screenshotCaptionPattern: "Figura {sectionNumber}.{screenNumber} — {pageName}", tableCaptionPattern: "Tabela {sectionNumber}.{tableNumber} — {pageName}",
     configVersion: 5,
     columns: [{ title: "STEP", source: ["sequence"], width: 12, alignment: "center" }, { title: "DESCRIÇÃO", source: ["auto-description", "microprint"], width: 88, alignment: "left" }],
-    actionTexts: { "click-button": "Clique no botão {name}.", click: "Clique em {name}.", "highlight-text": "Certifique-se que {texto-iluminado}.", "page-view": "Acesse a página {pageName}.", scroll: "Role a página até a posição {scrollY}.", generic: "Interaja com {name}." },
+    actionTexts: { "click-button": "Clique no botão {name}.", click: "Clique em {name}.", "highlight-text": "Certifique-se que {texto-iluminado}.", "page-view": "Insira a url {url} e acesse a página {pageName}", scroll: "Role a página até a posição {scrollY}.", generic: "Interaja com {name}." },
     microprint: { heightPt: 11, maxWidthPt: 90, preserveAspectRatio: true }, markers: { sizePt: 18 },
     images: { screen: { format: "jpeg", quality: 80, maxWidth: 1280, maxHeight: 720 }, component: { format: "png", maxWidth: 400, maxHeight: 200 } },
     theme: { fontFamily: "Aptos", bodyFontSize: 11, headingColor: "111827", tableHeaderBackground: "285589", tableHeaderColor: "FFFFFF", tableBorderColor: "111111", markerBackground: "000000", markerColor: "FFFFFF", componentBold: true, componentColor: "111827", linkColor: "0563C1" }
@@ -77,7 +77,8 @@ function dataUrl(file, mime) { return `data:${mime};base64,${fs.readFileSync(fil
   await call({ command: "finish", projectPath });
   fs.rmdirSync(path.join(projectPath, "documents")); // Empty test-only folder: export must recreate it.
   const generated = await call({ command: "generateDocx", projectPath, fileName: "smoke-test" });
-  for (const expected of ["project.json", "session.json", "theme.css", "screenshots/screen-smoke-step-1.jpg", "screenshots/screen-smoke-step-4.jpg", "screenshots/screen-smoke-step-5.jpg", "components/step-smoke-step-1.png", "documents/smoke-test.docx"]) {
+  if (path.basename(generated.output) !== `${created.project.name}.docx`) throw new Error('O arquivo não usou o nome do projeto.');
+  for (const expected of ["project.json", "session.json", "theme.css", "screenshots/screen-smoke-step-1.jpg", "screenshots/screen-smoke-step-4.jpg", "screenshots/screen-smoke-step-5.jpg", "components/step-smoke-step-1.png"]) {
     if (!fs.existsSync(path.join(projectPath, expected))) throw new Error(`Arquivo ausente: ${expected}`);
   }
   const savedSession = JSON.parse(fs.readFileSync(path.join(projectPath, "session.json"), "utf8"));
@@ -85,13 +86,33 @@ function dataUrl(file, mime) { return `data:${mime};base64,${fs.readFileSync(fil
   if (savedSession.steps.length !== 6 || savedSession.steps[3].images.microprint !== null || savedSession.steps[4].images.microprint !== null) throw new Error("Eventos de navegação/scroll inválidos.");
   const xml = spawnSync("unzip", ["-p", generated.output, "word/document.xml"], {encoding:"utf8"}).stdout;
   if (!xml.includes("Insira o texto Exemplo final 123 no campo Nome.")) throw new Error("Texto digitado ausente no DOCX.");
+  if (!xml.includes("Insira a url https://example.test/destino e acesse a página Página de destino")) throw new Error("URL ou nome da página ausente no DOCX.");
+  for (const id of [1,3,6]) if (!xml.includes(`id="ChronoClick_${id}"`)) throw new Error(`Marcador editável ausente no passo ${id}.`);
+  for (const id of [4,5]) if (xml.includes(`id="ChronoClick_${id}"`)) throw new Error(`Marcador indevido na página/rolagem ${id}.`);
+  if (xml.includes('CHRONOMARKER_')) throw new Error('Marcadores não foram inseridos no documento.');
+  const numberingXml=spawnSync('unzip',['-p',generated.output,'word/numbering.xml'],{encoding:'utf8'}).stdout;
+  if(!numberingXml.includes('w:suff w:val="nothing"')) throw new Error('Numeração manteve tabulação após o número.');
   const originalFile = path.join(projectPath, savedSession.steps[0].images.screen);
   fs.renameSync(originalFile, originalFile + ".test-backup");
   let rejectedMissing = false;
   try { await call({command:"generateDocx",projectPath,fileName:"should-not-export"}); } catch(error) { rejectedMissing = error.message.includes("Print ausente"); }
   finally { fs.renameSync(originalFile + ".test-backup", originalFile); }
   if (!rejectedMissing) throw new Error("Exportação não rejeitou print ausente.");
+  savedSession.config.recording = { separateScreens: false };
+  savedSession.config.groupWindowMs = 0;
+  savedSession.config.documentTitle = 'Manual — {pageName}';
+  await call({ command:'saveSession', projectPath, session:savedSession });
+  const grouped = await call({ command:'generateDocx', projectPath, fileName:'Manual — {pageName}' });
+  const groupedXml = spawnSync('unzip',['-p',grouped.output,'word/document.xml'],{encoding:'utf8'}).stdout;
+  if (grouped.output !== generated.output || !groupedXml.includes('Manual — Página de teste') || groupedXml.includes('{pageName}')) throw new Error('Título interno ou nome do projeto incorreto.');
+  if ((groupedXml.match(/<w:tbl>/g)||[]).length !== 4) throw new Error('Agrupamento deveria gerar 4 tabelas, preservando retorno à página e scroll.');
+  const firstScreen = groupedXml.slice(0,groupedXml.indexOf('<w:tbl>'));
+  for (const id of [1,3]) if (!firstScreen.includes(`id="ChronoClick_${id}"`)) throw new Error('Cronocliques não foram agrupados no primeiro print.');
   savedSession.captureFailures = [{ action: 'click', error: 'A página mudou antes do print.' }];
+  savedSession.config.showScreenshotCaption=false;
+  savedSession.config.showTableCaption=false;
+  savedSession.config.theme.linkColor='CC2288';
+  savedSession.config.linkColorSource='settings';
   await call({ command: 'saveSession', projectPath, session: savedSession });
   let partialRejected = false;
   try { await call({ command: 'generateDocx', projectPath, fileName: 'partial' }); } catch (error) { partialRejected = error.message.includes('Confirme'); }
@@ -99,6 +120,16 @@ function dataUrl(file, mime) { return `data:${mime};base64,${fs.readFileSync(fil
   const partial = await call({ command: 'generateDocx', projectPath, fileName: 'partial', allowPartial: true });
   const partialXml = spawnSync('unzip', ['-p', partial.output, 'word/document.xml'], { encoding: 'utf8' }).stdout;
   if (!partialXml.includes('GRAVAÇÃO INCOMPLETA') || !partialXml.includes('A página mudou antes do print.')) throw new Error('Aviso de exportação parcial ausente.');
+  if(partialXml.includes('w:pStyle w:val="ChronoCaption"')||partialXml.includes('w:pStyle w:val="ChronoTableCaption"'))throw new Error('Legendas desativadas ainda aparecem.');
+  if(!partialXml.includes('w:color w:val="CC2288"'))throw new Error('CSS sobrescreveu a cor do link escolhida.');
+  for (const [appearance,label] of [['button','botão'],['menu','menu']]) {
+    savedSession.steps[2].component.appearance=appearance;
+    savedSession.steps[2].component.textOnlyLink=false;
+    await call({command:'saveSession',projectPath,session:savedSession});
+    const styled=await call({command:'generateDocx',projectPath,allowPartial:true});
+    const styledXml=spawnSync('unzip',['-p',styled.output,'word/document.xml'],{encoding:'utf8'}).stdout;
+    if(!styledXml.includes(`Acione o ${label} Ver detalhes.`))throw new Error(`Descrição de ${appearance} incorreta.`);
+  }
   console.log(JSON.stringify({ hostVersion: ping.version, projectPath, docx: generated.output }));
   child.stdin.end();
 })().catch((error) => { console.error(error); process.exit(1); });

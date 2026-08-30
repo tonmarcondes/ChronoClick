@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
-const context = vm.createContext({ console, crypto, setTimeout, clearTimeout,
+const context = vm.createContext({ console, crypto, URL, setTimeout, clearTimeout,
   chrome: { runtime: { onMessage: { addListener() {} } }, storage: { local: { set: async () => {} } },
     tabs: { query: async () => [{id:1}], sendMessage: async () => ({url:'https://test/a',documentToken:'doc',scrollY:0}), captureVisibleTab: async () => 'screen-A' } } });
 vm.runInContext(fs.readFileSync(path.join(root, 'extension/recording-policy.js'), 'utf8'), context);
@@ -22,6 +22,38 @@ const event = (action='click', selector='#button') => ({action,component:{select
 const media = {screenDataUrl:'data:image/png;base64,AA',microDataUrl:null,signature:[1]};
 (async () => {
   assert.equal(policy.defaults.scrollMode,'with-interaction');
+  assert.equal(policy.linkAppearance({menu:true}),'menu');
+  assert.equal(policy.linkAppearance({classes:'btn btn-primary'}),'button');
+  assert.equal(policy.linkAppearance({padding:8,background:'rgb(20, 30, 40)',border:0}),'button');
+  assert.equal(policy.linkAppearance({padding:8,background:'rgba(0, 0, 0, 0)',border:0}),'link');
+  assert.equal(policy.actionKey({action:'click',component:{role:'link',appearance:'menu'}}),'click-menu');
+  assert.equal(policy.actionKey({action:'click',component:{role:'link',appearance:'button'}}),'click-styled-button');
+  assert.equal(policy.actionValue({action:'click',component:{name:'Salvar'}}),'Salvar');
+  assert.equal(policy.actionValue({action:'typing',value:''}),'');
+  const grouped = {page:{url:'https://test/form',scrollY:0},signature:[10,20],lastTimestamp:'2026-01-01T00:00:00Z'};
+  const next = {action:'click',page:{url:'https://test/form',scrollY:0},timestamp:'2026-01-01T00:10:00Z'};
+  assert.equal(policy.canGroup(grouped,next,[11,21],{recording:{},groupWindowMs:0}),true);
+  assert.equal(policy.canGroup(grouped,{...next,page:{...next.page,scrollY:300}},[11,21],{}),false);
+  assert.equal(policy.canGroup(grouped,{...next,page:{url:'https://test/other'}},[11,21],{}),false);
+  assert.equal(policy.canGroup(grouped,next,[200,220],{}),false);
+  assert.equal(policy.canGroup(grouped,next,[11,21],{recording:{separateScreens:true}}),false);
+  assert.equal(policy.documentTitle({steps:[{page:{pageName:'Cadastro',url:'https://test/form'}}]},'Manual — {pageName} ({url})'),'Manual — Cadastro (https://test/form)');
+  const navigation = {initialUrl:'https://test/start',config:{recording:{}},steps:[]};
+  const pageView = url => ({action:'page-view',page:{url}});
+  assert.equal(policy.skipPageView(navigation,pageView('https://test/start')),false);
+  navigation.steps.push(pageView('https://test/start'));
+  for(const url of ['https://test/other','https://test/start?q=2#tab']) assert.equal(policy.skipPageView(navigation,pageView(url)),true);
+  for(const url of ['https://other/start','http://test/start','https://test:8443/start']) assert.equal(policy.skipPageView(navigation,pageView(url)),false);
+  assert.equal(policy.skipPageView(navigation,{action:'click',page:{url:'https://test/other'}}),false);
+  navigation.config.recording.skipInitialOriginPages=false;
+  assert.equal(policy.skipPageView(navigation,pageView('https://test/other')),false);
+  navigation.config.recording.skipInitialOriginPages=true;
+  navigation.steps.push(pageView('https://second.test/login'));
+  assert.equal(policy.skipPageView(navigation,pageView('https://second.test/dashboard?x=1')),true);
+  const placeMarkers=require('../cli/marker-layout.cjs');
+  const markers=placeMarkers([{sequence:1,leftPt:-5,topPt:-5},{sequence:2,leftPt:-5,topPt:-5},{sequence:3,leftPt:195,topPt:195}],{left:0,width:200,height:200,size:18});
+  assert.notDeepEqual([markers[0].leftPt,markers[0].topPt],[markers[1].leftPt,markers[1].topPt]);
+  for(const m of markers) assert.ok(m.leftPt>=0&&m.topPt>=0&&m.leftPt<=182&&m.topPt<=182);
   assert.equal(policy.typedValue({matches:()=>true,closest:()=>null,value:'secret'}, {captureText:true}), '[REDACTED]');
   assert.equal(policy.typedValue({matches:()=>false,closest:()=>null,value:'João\nSilva'}, {captureText:true}), 'João\nSilva');
   assert.equal(policy.typedValue({matches:()=>false,closest:()=>null,value:'secret'}, {captureText:false}), '[NOT_CAPTURED]');

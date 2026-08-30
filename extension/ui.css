@@ -29,6 +29,9 @@ button:disabled { opacity: .42; cursor: not-allowed; }
 .text-link { color: #0563c1; text-decoration: underline; overflow-wrap: anywhere; }
 .step textarea { min-height: 64px; }
 .muted { color: #667085; }
+.field input[type="color"] { height: 42px; padding: 3px; cursor: pointer; }
+.color-preview { display: flex; gap: 8px; align-items: center; }
+.color-swatch { display: inline-block; width: 42px; height: 24px; border: 1px solid #9ca3af; border-radius: 4px; }
 summary { cursor: pointer; font-weight: 700; }
 #variables { line-height: 1.6; overflow-wrap: anywhere; }
 #documentStatus { overflow-wrap: anywhere; }

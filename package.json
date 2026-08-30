@@ -1,10 +1,10 @@
 {
   "name": "chronoclick-recorder",
-  "version": "0.8.1",
+  "version": "0.8.8",
   "private": true,
   "description": "Extensão Chromium e gerador DOCX para procedimentos gravados.",
   "scripts": {
-    "test": "node tests/recording.test.cjs && node tests/export-ui.test.cjs",
+    "test": "node tests/recording.test.cjs && node tests/export-ui.test.cjs && node tests/start-session.test.cjs",
     "test:integration": "node native-host/smoke-test.cjs",
     "generate": "node cli/generate-docx.cjs",
     "demo": "node cli/make-demo.cjs && node cli/generate-docx.cjs demo/demo-session.json demo/chronoclick-demo.docx"

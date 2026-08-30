@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const JSZip = require("jszip");
+const placeMarkers = require("./marker-layout.cjs");
+require("../extension/recording-policy.js");
 const {
   AlignmentType, BorderStyle, Document, Footer, Header, ImageRun, PageNumber,
   Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun,
@@ -24,8 +26,29 @@ if (!cliArgs[0] || !fs.existsSync(inputPath)) {
 const outputPath = path.resolve(cliArgs[1] || inputPath.replace(/\.json$/i, "") + ".docx");
 const session = JSON.parse(fs.readFileSync(inputPath, "utf8"));
 const config = session.config || {};
+if (config.recording?.skipInitialOriginPages !== false) {
+  const retained=[];
+  for (const step of session.steps || []) if (!ChronoPolicy.skipPageView({config,steps:retained},step)) retained.push(step);
+  session.steps=retained;
+  ChronoPolicy.normalize(session);
+}
+const documentTitle = ChronoPolicy.documentTitle(session);
+// Rebuild the presentation only; original captures and steps stay untouched.
+if (config.recording?.separateScreens === false) {
+  const groups = [];
+  for (const step of session.steps || []) {
+    const source = session.groups?.find(group => group.id === step.groupId);
+    const last = groups.at(-1);
+    if (ChronoPolicy.canGroup(last, step, source?.signature, config)) {
+      last.stepIds.push(step.id); last.lastTimestamp = step.timestamp;
+    } else groups.push({ id: step.id, page: step.page, screenshot: step.images?.screen || source?.screenshot, signature: source?.signature, stepIds: [step.id], lastTimestamp: step.timestamp });
+  }
+  session.groups = groups;
+}
 const theme = config.theme || {};
+const configuredLinkColor = theme.linkColor || "0563C1";
 if (cssThemePath) applyCssTheme(theme, path.resolve(cssThemePath));
+if (config.linkColorSource !== "css") theme.linkColor = configuredLinkColor;
 const font = theme.fontFamily || "Aptos";
 const markerPatches = [];
 
@@ -102,24 +125,20 @@ function imageType(buffer) {
 }
 
 function actionTemplateKey(step) {
-  if (step.action === "click") {
-    if (["button", "tab", "menuitem"].includes(step.component?.role)) return "click-button";
-    if (step.component?.role === "link") return "click-link";
-    if (["textbox", "combobox", "checkbox", "radio", "switch"].includes(step.component?.role)) return "click-field";
-  }
-  return step.action || "generic";
+  return ChronoPolicy.actionKey(step);
 }
 
 function autoDescription(step) {
   const defaults = {
+    "click-menu": "Acione o menu {value}.", "click-styled-button": "Acione o botão {value}.",
     "click-button": "Clique no botão {name}.", "click-link": "Clique no link {name}.", "click-field": "Selecione o campo {name}.",
     click: "Clique em {name}.", "double-click": "Dê um duplo clique em {name}.", "right-click": "Acione o botão direito do mouse em {name}.",
     typing: "Insira o texto {value} no campo {name}.", select: "Selecione uma opção no campo {name}.", toggle: "Altere a opção {name}.",
     change: "Altere o campo {name}.", observation: "Observe {name}.", "highlight-text": "Certifique-se que {texto-iluminado}.",
-    "page-view": "Acesse a página {pageName}.", scroll: "Role a página até a posição {scrollY}.", generic: "Interaja com {name}."
+    "page-view": "Insira a url {url} e acesse a página {pageName}", scroll: "Role a página até a posição {scrollY}.", generic: "Interaja com {name}."
   };
   const templates = { ...defaults, ...(config.actionTexts || {}) };
-  return format(templates[actionTemplateKey(step)] || templates.generic, { name: step.component?.name || "componente", value: step.value || "", pageName: step.page?.pageName || "página", scrollX: step.scrollX ?? step.scroll?.x ?? 0, scrollY: step.scrollY ?? step.scroll?.y ?? 0, "texto-iluminado": step.selectedText || step.component?.name || "texto", "highlighted-text": step.selectedText || step.component?.name || "texto" });
+  return format(templates[actionTemplateKey(step)] || templates.generic, { name: step.component?.name || "componente", value: ChronoPolicy.actionValue(step), url: step.page?.url || "", pageName: step.page?.pageName || "página", scrollX: step.scrollX ?? step.scroll?.x ?? 0, scrollY: step.scrollY ?? step.scroll?.y ?? 0, "texto-iluminado": step.selectedText || step.component?.name || "texto", "highlighted-text": step.selectedText || step.component?.name || "texto" });
 }
 
 function textSource(source, step) {
@@ -140,7 +159,7 @@ async function cellContent(column, step) {
   const sources = Array.isArray(column.source) ? column.source : [column.source];
   const alignment = alignmentFor(column.alignment);
   if (sources.includes("sequence")) {
-    return [new Paragraph({ style: "ChronoStepNumber", alignment, numbering: { reference: numberingReferenceFor(column.alignment), level: 0 }, children: [] })];
+    return [new Paragraph({ style: "ChronoStepNumber", alignment: AlignmentType.LEFT, numbering: { reference: numberingReferenceFor(column.alignment), level: 0 }, children: [] })];
   }
   const runs = [];
   for (const source of sources) {
@@ -159,7 +178,7 @@ async function cellContent(column, step) {
     const value = textSource(source, step);
     if (source === "component-name") {
       if (runs.length) runs.push(new TextRun(" "));
-      runs.push(new TextRun({ text: value, style: "ChronoComponentName" }));
+      runs.push(new TextRun({ text: value, style: "ChronoComponentName", ...(step.component?.role === "link" ? {color:theme.linkColor} : {}) }));
     } else if (source === "editable") {
       if (value) { if (runs.length) runs.push(new TextRun(" ")); runs.push(new TextRun(value)); }
     } else if (source === "auto-description" && value && step.component?.role === "link" && step.component?.textOnlyLink) {
@@ -173,7 +192,7 @@ async function cellContent(column, step) {
       }
     } else if (value) {
       if (runs.length) runs.push(new TextRun(" "));
-      runs.push(new TextRun(value));
+      runs.push(new TextRun({text:value,...(source === "url" ? {color:theme.linkColor} : {})}));
     }
   }
   return [new Paragraph({ style: "ChronoStepDescription", alignment, children: runs })];
@@ -190,6 +209,7 @@ async function buildTable(steps) {
   const header = new TableRow({
     tableHeader: true,
     children: columns.map((column, i) => new TableCell({
+      margins: { left: 120, right: 120, top: 100, bottom: 100 },
       width: { size: widths[i], type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER,
       children: [new Paragraph({ style: "ChronoTableHeader", alignment: alignmentFor(column.alignment), children: [new TextRun(column.title || "")] })]
     }))
@@ -199,6 +219,7 @@ async function buildTable(steps) {
     const cells = [];
     for (let i = 0; i < columns.length; i++) {
       cells.push(new TableCell({
+        margins: { left: 120, right: 120, top: 100, bottom: 100 },
         width: { size: widths[i], type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER,
         children: await cellContent(columns[i], step)
       }));
@@ -206,6 +227,7 @@ async function buildTable(steps) {
     rows.push(new TableRow({ children: cells }));
   }
   return new Table({
+    layout: "fixed",
     style: "ChronoStepsTable",
     width: { size: 9360, type: WidthType.DXA },
     columnWidths: widths,
@@ -252,7 +274,7 @@ async function patchPackage(buffer) {
 
 (async () => {
   const children = [];
-  children.push(new Paragraph({ style: "ChronoDocumentTitle", children: [new TextRun(config.documentTitle || "Procedimento gravado")] }));
+  children.push(new Paragraph({ style: "ChronoDocumentTitle", children: [new TextRun(documentTitle)] }));
   if (session.captureFailures?.length) {
     children.push(new Paragraph({ children: [new TextRun({ text: `GRAVAÇÃO INCOMPLETA: ${session.captureFailures.length} captura(s) falharam. Este documento contém somente os ${session.steps.length} passos salvos.`, bold: true, color: "B45309" })] }));
     for (const failure of session.captureFailures) children.push(new Paragraph({ children: [new TextRun({ text: `${failure.action || "Ação"}: ${failure.error || "Falha na captura."}`, color: "B45309" })] }));
@@ -271,21 +293,28 @@ async function patchPackage(buffer) {
       const token = `CHRONOMARKER_${sectionNumber}_${Date.now()}`;
       const page = group.page || steps[0].page;
       const sizePt = Number(theme.markerSizePt || config.markers?.sizePt || 18), imageWidthPt = size.width * .75, imageHeightPt = size.height * .75, leftBasePt = (468 - imageWidthPt) / 2;
-      const markerSteps = steps.filter((step) => ["click", "double-click", "right-click", "observation"].includes(step.action) && step.click && step.component?.role);
-      markerPatches.push({ token, sizePt, items: markerSteps.map((step) => ({ sequence: step.sequence, leftPt: leftBasePt + (step.click.x / page.viewportWidth) * imageWidthPt - sizePt / 2, topPt: (step.click.y / page.viewportHeight) * imageHeightPt - sizePt / 2 })) });
+      const markerSteps = steps.flatMap(step => {
+        if (!["click", "double-click", "right-click", "observation", "typing", "select", "toggle", "change"].includes(step.action) || !step.component?.role || step.component.role === "page") return [];
+        const r = step.rect;
+        const visible = r && r.width > 0 && r.height > 0 && r.x < page.viewportWidth && r.y < page.viewportHeight && r.x+r.width > 0 && r.y+r.height > 0;
+        const point = step.click || (visible ? { x: (Math.max(0,r.x)+Math.min(page.viewportWidth,r.x+r.width))/2, y: (Math.max(0,r.y)+Math.min(page.viewportHeight,r.y+r.height))/2 } : null);
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.y < 0 || point.x > page.viewportWidth || point.y > page.viewportHeight) return [];
+        return [{ sequence: step.sequence, leftPt: leftBasePt + (point.x / page.viewportWidth) * imageWidthPt - sizePt / 2, topPt: (point.y / page.viewportHeight) * imageHeightPt - sizePt / 2 }];
+      });
+      markerPatches.push({ token, sizePt, items: placeMarkers(markerSteps, {left:leftBasePt,width:imageWidthPt,height:imageHeightPt,size:sizePt}) });
       children.push(new Paragraph({ style: "ChronoScreen", children: [new ImageRun({ data: screenshot, transformation: size, type: imageType(screenshot), altText: { title: `Tela ${sectionNumber}`, description: `Tela ${vars.pageName} com marcadores cronológicos editáveis`, name: `screen-${sectionNumber}` } }), new TextRun({ text: token, color: "FFFFFF", size: 2 })] }));
-      children.push(new Paragraph({ style: "ChronoCaption", children: [new TextRun(format(config.screenshotCaptionPattern || "Figura {sectionNumber}.{screenNumber} — {pageName}", vars))] }));
+      if (config.showScreenshotCaption !== false) children.push(new Paragraph({ style: "ChronoCaption", children: [new TextRun(format(config.screenshotCaptionPattern || "Figura {sectionNumber}.{screenNumber} — {pageName}", vars))] }));
     }
-    children.push(new Paragraph({ style: "ChronoTableCaption", children: [new TextRun(format(config.tableCaptionPattern || "Tabela {sectionNumber}.{tableNumber} — Passos de {pageName}", vars))] }));
+    if (config.showTableCaption !== false) children.push(new Paragraph({ style: "ChronoTableCaption", children: [new TextRun(format(config.tableCaptionPattern || "Tabela {sectionNumber}.{tableNumber} — Passos de {pageName}", vars))] }));
     children.push(await buildTable(steps));
     children.push(new Paragraph({ style: "ChronoAfterTable" }));
   }
 
   const stepWidth = stepColumnWidth();
-  const numberingLevel = (alignment, left) => ({ level: 0, format: "decimal", text: "%1", alignment, style: { paragraph: { indent: { left, hanging: 0 }, spacing: { before: 40, after: 40 } }, run: { bold: true, size: 22, font } } });
+  const numberingLevel = (alignment, left) => ({ level: 0, format: "decimal", text: "%1", suffix: "nothing", alignment, style: { paragraph: { indent: { left, hanging: 0 }, spacing: { before: 40, after: 40 } }, run: { bold: true, size: 22, font } } });
   const doc = new Document({
     creator: "ChronoClick Recorder",
-    title: config.documentTitle || "Procedimento gravado",
+    title: documentTitle,
     description: "Procedimento gerado a partir de uma sessão ChronoClick.",
     numbering: { config: [
       { reference: "chrono-steps-left", levels: [numberingLevel(AlignmentType.LEFT, 0)] },

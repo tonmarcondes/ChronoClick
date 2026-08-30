@@ -4,14 +4,22 @@ const colorIn = (value) => `#${String(value || "000000").replace("#", "")}`;
 const colorOut = (value) => value.replace("#", "").toUpperCase();
 
 function automaticDescription(step) {
-  let key = step.action;
-  if (step.action === "click") {
-    if (["button", "tab", "menuitem"].includes(step.component?.role)) key = "click-button";
-    else if (step.component?.role === "link") key = "click-link";
-    else if (["textbox", "combobox", "checkbox", "radio", "switch"].includes(step.component?.role)) key = "click-field";
-  }
+  const key = ChronoPolicy.actionKey(step);
   const template = session.config.actionTexts?.[key] || session.config.actionTexts?.generic || "Interaja com {name}.";
-  return template.replaceAll("{name}", step.component?.name || "componente").replaceAll("{value}", step.value || "").replaceAll("{pageName}", step.page?.pageName || "página").replaceAll("{scrollX}", step.scrollX ?? step.scroll?.x ?? 0).replaceAll("{scrollY}", step.scrollY ?? step.scroll?.y ?? 0).replaceAll("{texto-iluminado}", step.selectedText || step.component?.name || "texto").replaceAll("{highlighted-text}", step.selectedText || step.component?.name || "texto");
+  return template.replaceAll("{name}", step.component?.name || "componente").replaceAll("{value}", ChronoPolicy.actionValue(step)).replaceAll("{url}", step.page?.url || "").replaceAll("{pageName}", step.page?.pageName || "página").replaceAll("{scrollX}", step.scrollX ?? step.scroll?.x ?? 0).replaceAll("{scrollY}", step.scrollY ?? step.scroll?.y ?? 0).replaceAll("{texto-iluminado}", step.selectedText || step.component?.name || "texto").replaceAll("{highlighted-text}", step.selectedText || step.component?.name || "texto");
+}
+
+function showColorPreviews() {
+  document.querySelectorAll('input[type="color"]').forEach(input => {
+    let preview = input.nextElementSibling;
+    if (!preview?.classList.contains('color-preview')) {
+      preview = document.createElement('span'); preview.className = 'color-preview';
+      const swatch=document.createElement('span'); swatch.className='color-swatch'; swatch.setAttribute('aria-hidden','true');
+      preview.append(swatch,document.createElement('code')); input.after(preview);
+    }
+    const update=()=>{preview.firstElementChild.style.backgroundColor=input.value;preview.lastElementChild.textContent=input.value.toUpperCase();};
+    input.oninput=update; update();
+  });
 }
 
 function renderColumns() {
@@ -70,6 +78,9 @@ function readForm() {
   c.sectionTitlePattern = $("sectionTitlePattern").value;
   c.screenshotCaptionPattern = $("screenshotCaptionPattern").value;
   c.tableCaptionPattern = $("tableCaptionPattern").value;
+  c.showScreenshotCaption = $("showScreenshotCaption").checked;
+  c.showTableCaption = $("showTableCaption").checked;
+  c.linkColorSource = $("linkColorSource").value;
   c.groupWindowMs = Number($("groupWindow").value) * 1000;
   c.projectRoot = $("projectRoot").value.trim();
   const t = c.theme;
@@ -114,7 +125,10 @@ async function load() {
   $("sectionTitlePattern").value = c.sectionTitlePattern;
   $("screenshotCaptionPattern").value = c.screenshotCaptionPattern;
   $("tableCaptionPattern").value = c.tableCaptionPattern;
-  $("groupWindow").value = (c.groupWindowMs || 12000) / 1000;
+  $("showScreenshotCaption").checked = c.showScreenshotCaption !== false;
+  $("showTableCaption").checked = c.showTableCaption !== false;
+  $("linkColorSource").value = c.linkColorSource || "settings";
+  $("groupWindow").value = (c.groupWindowMs ?? 0) / 1000;
   $("projectRoot").value = c.projectRoot || "${HOME}/sistemas/cronoPrint";
   $("fontFamily").value = t.fontFamily;
   $("bodyFontSize").value = t.bodyFontSize;
@@ -138,7 +152,7 @@ async function load() {
   $("screenMaxWidth").value = si.maxWidth || 1920; $("screenMaxHeight").value = si.maxHeight || 1080;
   $("componentFormat").value = ci.format || "png"; $("componentPadding").value = ci.padding ?? 18;
   $("componentMaxWidth").value = ci.maxWidth || 600; $("componentMaxHeight").value = ci.maxHeight || 300;
-  renderColumns(); renderSteps();
+  showColorPreviews(); renderColumns(); renderSteps();
 }
 
 $("addColumn").onclick = () => { session.config.columns.push({ title: "NOVA COLUNA", source: ["editable"], width: 20, alignment: "left" }); renderColumns(); };

@@ -23,6 +23,8 @@
     <button id="generate">Gerar DOCX</button>
   </div>
   <p id="documentStatus" class="hint" aria-live="polite"></p>
+  <p id="captureWarnings" class="hint error"></p>
+  <label id="partialConsent" hidden><input id="allowPartial" type="checkbox"> Autorizo gerar somente os passos salvos, com aviso das capturas que falharam.</label>
   <p><a id="documentLink" href="#" hidden>Abrir DOCX gerado</a></p>
   <p id="error" class="hint error"></p><p class="hint">A observação captura um componente sem executar o clique.</p>
   <script src="popup.js"></script>

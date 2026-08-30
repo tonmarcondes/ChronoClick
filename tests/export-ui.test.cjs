@@ -12,7 +12,8 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
     if (!elements.has(id)) elements.set(id, { value: '', textContent: '', dataset: {}, hidden: true });
     return elements.get(id);
   };
-  let state = { state: 'finished', count: 2 }, failSave = false, acceptPartial = false;
+  let state = { state: 'finished', count: 2 }, failSave = false, acceptPartial = false, failStart = false;
+  const timers = [];
   const calls = [];
   const chrome = {
     runtime: {
@@ -20,6 +21,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
       sendMessage: async message => {
         calls.push(message.type);
         if (message.type === 'GET_STATE') return state;
+        if (message.type === 'START' && failStart) return {ok:false,error:'Página desconectada'};
         if (message.type === 'SAVE_SESSION' && failSave) return { ok: false, error: 'Falha de disco' };
         if (message.type === 'GENERATE_DOCX') state.document = { state: 'ready', output: '/project/documents/test.docx' };
         return { ok: true };
@@ -27,10 +29,17 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
     },
     tabs: { getCurrent: async () => ({ id: 9 }), remove: async id => calls.push(`close:${id}`) }
   };
-  const context = vm.createContext({ chrome, document: { getElementById: element }, setInterval() {}, window: { confirm: () => acceptPartial, close() { calls.push('close'); } } });
+  const context = vm.createContext({ chrome, document: { getElementById: element }, setInterval() {}, setTimeout(fn,ms) {timers.push({fn,ms});}, window: { confirm: () => acceptPartial, close() { calls.push('close'); } } });
   vm.runInContext(source('popup.js'), context);
   await tick();
   assert.equal(element('documentLink').hidden, true);
+  await element('start').onclick();
+  assert.equal(timers.length,1); assert.equal(timers[0].ms,3000);
+  timers[0].fn(); assert.equal(calls.at(-1),'close');
+  failStart=true;
+  await element('start').onclick();
+  assert.equal(timers.length,1); assert.match(element('error').textContent,/Página desconectada/);
+  assert.equal(element('resume').disabled,false);
   await element('generate').onclick();
   assert.equal(element('documentLink').hidden, false);
   assert.match(element('documentStatus').textContent, /Pronto/);
@@ -43,11 +52,17 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
   state.document = { state: 'error', error: 'Print ausente' };
   await vm.runInContext('refresh()', context);
   assert.match(element('documentStatus').textContent, /Print ausente/);
+  state = {state:'finished',count:0};
+  await vm.runInContext('refresh()', context);
+  assert.match(element('documentStatus').textContent, /Nenhum evento foi salvo/);
+  assert.equal(element('documentLink').hidden, true);
+  state.count = 2;
   state.failures = [{error:'Captura falhou'}];
   calls.length = 0;
   await element('generate').onclick();
   assert.equal(calls.includes('GENERATE_DOCX'), false);
   acceptPartial = true;
+  element('allowPartial').checked = true;
   await element('generate').onclick();
   assert.equal(calls.includes('GENERATE_DOCX'), true);
 
@@ -63,7 +78,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
   assert.match(element('status').textContent, /Falha de disco/);
 
   let listener, finishGeneration;
-  const bg = vm.createContext({ console, chrome: {
+  const bg = vm.createContext({ console, setTimeout, clearTimeout, chrome: {
     runtime: { onMessage: { addListener(fn) { listener = fn; } } },
     storage: { local: { set: async () => {} } }, tabs: { query: async () => [] }
   } });
@@ -90,5 +105,11 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
   const partial = send('GENERATE_DOCX', {allowPartial:true});
   await tick(); finishGeneration();
   assert.equal((await partial).ok, true);
+  vm.runInContext(`recorderState='finished';`, bg);
+  assert.equal((await send('START')).ok, false); // No active web page: do not create a silent empty session.
+  const migration = vm.runInContext(`migrateConfig({actionTexts:{'page-view':'Acesse a página {pageName}.'}})`, bg);
+  assert.equal(migration.actionTexts['page-view'], 'Insira a url {url} e acesse a página {pageName}');
+  const custom = vm.runInContext(`migrateConfig({actionTexts:{'page-view':'Visite {url}'}})`, bg);
+  assert.equal(custom.actionTexts['page-view'], 'Visite {url}');
   console.log('PASS: painel, link, revisão fecha após salvar, erro mantém revisão aberta, geração concorrente e erros persistidos.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

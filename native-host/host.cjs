@@ -4,6 +4,7 @@ const path = require("path");
 const os = require("os");
 const { spawnSync } = require("child_process");
 const sharp = require("sharp");
+require("../extension/recording-policy.js");
 
 const APP_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_ROOT = path.join(os.homedir(), "sistemas", "cronoPrint");
@@ -103,7 +104,7 @@ async function saveEvent(message) {
 }
 
 async function handle(message) {
-  if (message.command === "ping") return { ok: true, version: "0.8.1", root: DEFAULT_ROOT };
+  if (message.command === "ping") return { ok: true, version: "0.8.8", root: DEFAULT_ROOT };
   if (message.command === "createProject") return { ok: true, ...(await createProject(message)) };
   if (message.command === "saveEvent") return { ok: true, ...(await saveEvent(message)) };
   if (message.command === "beginEvent") {
@@ -154,7 +155,9 @@ async function handle(message) {
       if (!step.images?.screen || !fs.existsSync(path.join(projectPath, step.images.screen))) throw new Error(`Print ausente no passo ${step.sequence}.`);
       if (step.images.microprint && !fs.existsSync(path.join(projectPath, step.images.microprint))) throw new Error(`Microprint ausente no passo ${step.sequence}.`);
     }
-    const output = path.join(projectPath, "documents", `${safeSlug(message.fileName || "procedimento")}.docx`);
+    const project = readJson(path.join(projectPath, "project.json"));
+    const fileName = String(project.name || project.slug || "projeto").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-").replace(/[. ]+$/g, "").trim() || "projeto";
+    const output = path.join(projectPath, "documents", `${fileName}.docx`);
     const node = process.execPath;
     const args = [path.join(APP_ROOT, "cli", "generate-docx.cjs"), path.join(projectPath, "session.json"), output];
     if (fs.existsSync(path.join(projectPath, "theme.css"))) args.push("--theme", path.join(projectPath, "theme.css"));

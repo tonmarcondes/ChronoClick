@@ -3,6 +3,7 @@
   globalThis.__chronoClickInstalled = true;
 
   let state = "idle";
+  let receivedExplicitState = false;
   let options = { ...ChronoPolicy.defaults };
   const documentToken = crypto.randomUUID();
   const dirtyFields = new Map(), pendingSends = new Set();
@@ -82,11 +83,17 @@
   function describe(element) {
     const target = element.closest?.(interactiveSelector) || element;
     const rect = target.getBoundingClientRect();
-    const isTextLink = roleFor(target) === "link" && !target.matches("img,svg,picture,canvas") && !target.querySelector("img,svg,picture,canvas");
+    let appearance;
+    if (target.matches("a[href]")) {
+      const style = getComputedStyle(target);
+      appearance = ChronoPolicy.linkAppearance({role:target.getAttribute("role"), menu:!!target.closest('nav,[role="menu"],[role="menubar"],[role="navigation"]'),classes:target.className,background:style.backgroundColor,padding:Math.max(parseFloat(style.paddingLeft)||0,parseFloat(style.paddingTop)||0),border:parseFloat(style.borderTopWidth)||0});
+    }
+    const isTextLink = roleFor(target) === "link" && (!appearance || appearance === "link") && !target.matches("img,svg,picture,canvas") && !target.querySelector("img,svg,picture,canvas");
     return {
       component: {
         tagName: target.tagName.toLowerCase(),
         role: roleFor(target),
+        appearance,
         name: clean(findLabel(target)) || `${roleFor(target)} sem nome`,
         selector: selectorFor(target),
         textOnlyLink: isTextLink
@@ -262,7 +269,13 @@
   addEventListener("hashchange", schedulePageView);
 
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
-    if (message.type === "SET_STATE") { options = { ...options, ...message.recording }; const wasRecording = state === "recording"; state = message.state; if (state !== "recording") { pendingScroll = null; clearTimeout(scrollTimer); } if (!wasRecording && state === "recording") schedulePageView(); }
+    if (message.type === "START_RECORDING") {
+      receivedExplicitState = true;
+      options = { ...options, ...message.recording }; state = "recording";
+      lastPageViewUrl = ""; pendingScroll = null;
+      schedulePageView(); respond({ok:true}); return;
+    }
+    if (message.type === "SET_STATE") { receivedExplicitState = true; options = { ...options, ...message.recording }; const wasRecording = state === "recording"; if (["idle", "finished"].includes(state) && message.state === "recording") lastPageViewUrl = ""; state = message.state; if (state !== "recording") { pendingScroll = null; clearTimeout(scrollTimer); } if (!wasRecording && state === "recording") schedulePageView(); }
     if (message.type === "FLUSH_PENDING") { flushAll().then(() => { pendingScroll = null; respond({ ok: true }); }); return true; }
     if (message.type === "GET_CAPTURE_CONTEXT") {
       const info = pageInfo();
@@ -275,6 +288,7 @@
   });
 
   chrome.runtime.sendMessage({ type: "GET_STATE" }).then((response) => {
+    if (receivedExplicitState) return;
     state = response?.state || "idle";
     options = { ...options, ...response?.recording };
     if (state === "recording") schedulePageView();

@@ -1,4 +1,68 @@
-# ChronoClick Recorder — v0.8.1
+# ChronoClick Recorder — v0.8.8
+
+## Links que parecem botões e cores à vista
+
+Links de navegação e itens de menu usam a frase `Acione o menu {value}.`. Links com papel de botão, classes como `btn`/`button` ou estilo de botão usam `Acione o botão {value}.`. Nesses cliques, `{value}` recebe o nome visível do componente. As frases podem ser alteradas em **Textos automáticos**.
+
+A identificação pela aparência é uma aproximação: sites com estilos muito diferentes podem exigir revisão. Links comuns continuam descritos como links. A classificação vale para novas capturas; não tentamos adivinhar o CSS de uma gravação antiga.
+
+Nas configurações, cada seletor mostra uma amostra da cor e seu código hexadecimal, sem precisar abrir a paleta.
+
+## Ajustes nos prints e no Word
+
+- A entrada automática aparece uma vez por URL base visitada, não só no primeiro site da gravação. Pastas, rotas, parâmetros e fragmentos não criam novas entradas. Cliques nessas páginas continuam com seus prints. Ao gerar novamente, essa regra também remove entradas redundantes da apresentação, sem apagar os arquivos originais.
+- Cronocliques próximos são distribuídos para não cobrir os anteriores; os números ficam dentro do print. Campos parcialmente visíveis recebem o número na parte visível. Marcadores deslocados continuam editáveis no Word e podem ser reposicionados.
+- Removi a tabulação após os números de STEP e deixei margens iguais nos dois lados. A numeração continua automática.
+- Em **Documento**, marque ou desmarque **Mostrar legenda das imagens** e **Mostrar legenda das tabelas**, separadamente.
+- Em **Tema**, escolha a cor dos links e se ela deve vir da configuração ou do CSS do projeto. A configuração é o padrão e não é mais sobrescrita silenciosamente pelo CSS.
+
+Falhas reais de captura por navegação ou movimento ainda aparecem nos avisos. Esses prints não são recriados pela distribuição dos cronocliques; é preciso repetir a captura para completar o registro.
+
+## Corrigi o início de uma nova gravação
+
+Ao clicar em **Iniciar nova**, o painel deixa de mostrar o link e os avisos anteriores enquanto conecta. O gravador tenta se reconectar à página sem recarregá-la e exige uma confirmação de início. Quando dá certo, a sessão começa sem os eventos e sem o link do projeto anterior, e o painel fecha após três segundos.
+
+Se o início falhar, a mensagem fica visível e a sessão anterior é preservada. Nenhum arquivo antigo é apagado. As chamadas de conexão e criação têm limite de espera para não deixar o início preso indefinidamente.
+
+Esta versão acrescenta a permissão `scripting`, usada para carregar o gravador nas páginas já abertas. Recarregue a extensão em `chrome://extensions` e confira se o Chrome pede para confirmar a permissão. Páginas internas do navegador continuam não sendo graváveis.
+
+## Nome do arquivo e início da gravação
+
+O DOCX usa o nome do projeto, mantendo espaços e acentos. Caracteres inválidos no nome do arquivo são trocados por hífen. O título dentro do Word continua independente e aceita variáveis. Gerar novamente atualiza o DOCX com o mesmo nome dentro do projeto.
+
+Depois de **Iniciar nova**, o painel fecha em três segundos, somente se a gravação iniciar com sucesso. Em caso de erro, ele fica aberto.
+
+## Como lidar com capturas que falharam
+
+“O componente mudou de posição” indica que o elemento se moveu entre o clique e a captura. Espere imagens, animações e carregamentos terminarem antes de clicar. Aguarde cerca de um segundo entre ações; isso reduz a fila, mas não garante sucesso em páginas que mudam imediatamente.
+
+“A página mudou antes do print” indica que a navegação ocorreu antes da captura da origem. Mantenha **Links comuns: aguardar print antes de navegar** ativado. Essa espera funciona para links comuns, mas não controla todos os redirecionamentos por scripts.
+
+Para tentar completar a sessão, clique em **Continuar**, volte à página e repita a interação no mesmo componente. Uma captura bem-sucedida remove o aviso correspondente. Se o site mudar a URL ou a identificação do componente, o aviso anterior pode permanecer; nesse caso, refaça a gravação. Capturas que nunca foram salvas não podem ser recuperadas. Não desative a validação só para remover avisos: isso pode associar a ação a um print errado.
+
+## Agrupamento e título
+
+Agora os passos consecutivos na mesma tela ficam juntos: um print com vários cronocliques e uma tabela com os passos. Mudanças de URL, rolagem, janela ou aparência relevante abrem outro grupo. Voltar a uma página depois de passar por outra não mistura a ordem do procedimento.
+
+Em **Print no Word**, escolha **Agrupar telas semelhantes**. Esse passa a ser o padrão ao atualizar de versões anteriores. A opção de um print por evento continua disponível. O intervalo de agrupamento aceita `0`, para não separar passos só porque houve uma pausa. Ao gerar novamente, o Word também reagrupa gravações antigas; as imagens originais continuam na pasta.
+
+O **Título do documento** aceita variáveis. Por exemplo, `Manual — {pageName}` usa o nome da primeira página gravada. `{url}` usa o endereço dessa página. O título dentro do Word e as propriedades do documento resolvem essas variáveis. Desde a v0.8.5, o nome do arquivo usa o nome do projeto.
+
+## O que ajustei nesta versão
+
+O texto “Insira a url…” aparece na primeira entrada no site. Ao navegar por outras páginas da mesma base (protocolo, domínio e porta), ele não fica criando prints extras. Os cliques, campos e demais ações continuam sendo gravados. Se quiser registrar cada URL, desative **Evitar entradas repetidas no site inicial**, na revisão. A mudança vale para as próximas capturas; não apaga passos antigos.
+
+Também corrigi os cronocliques dos campos. Quando a digitação substituía o clique inicial, o marcador sumia. Agora os passos de digitação, seleção e checkbox recebem um marcador no centro do componente. Os cliques mantêm a posição do mouse. Rolagens e entradas em páginas não recebem marcador.
+
+Os números continuam sendo formas editáveis no Word, não parte da imagem. Para aplicar essa correção a uma gravação antiga, gere o DOCX novamente.
+
+## Correção da v0.8.2
+
+- Entrada em URL: `Insira a url {url} e acesse a página {pageName}`. Edite em **Textos automáticos → Entrada em nova página**. Vale para URLs abertas diretamente ou por links; não lê o texto da barra de endereços enquanto você digita.
+- Iniciar exige conexão com o gravador na aba ativa. Após atualizar a extensão, atualize também a página web; caso contrário, a gravação não inicia e mostra a orientação.
+- Nova gravação na mesma página registra novamente a entrada inicial.
+- Sessão vazia mostra por que não pode gerar DOCX. Falha na finalização libera nova tentativa, em vez de manter o painel preso em “Finalizando”.
+- No painel, marque a autorização de exportação parcial quando houver capturas com falha. O link de abertura só aparece após o arquivo ser gerado e validado.
 
 Gravador de prints de tela.
 

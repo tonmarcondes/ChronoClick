@@ -1,24 +1,25 @@
 import "./recording-policy.js";
 const HOST = "com.chronoclick.recorder";
 const DEFAULT_CONFIG = {
-  configVersion: 6,
+  configVersion: 7,
   recording: { ...ChronoPolicy.defaults },
   projectRoot: "${HOME}/sistemas/cronoPrint",
   documentTitle: "Procedimento gravado",
   sectionTitlePattern: "{sectionNumber}. {pageName}",
   screenshotCaptionPattern: "Figura {sectionNumber}.{screenNumber} — {pageName}",
   tableCaptionPattern: "Tabela {sectionNumber}.{tableNumber} — Passos de {pageName}",
-  groupWindowMs: 12000,
+  groupWindowMs: 0,
   columns: [
     { key: "step", title: "STEP", source: ["sequence"], width: 12, alignment: "center" },
     { key: "description", title: "DESCRIÇÃO", source: ["auto-description", "microprint"], width: 88, alignment: "left" }
   ],
   actionTexts: {
+    "click-menu": "Acione o menu {value}.", "click-styled-button": "Acione o botão {value}.",
     "click-button": "Clique no botão {name}.", "click-link": "Clique no link {name}.", "click-field": "Selecione o campo {name}.",
     click: "Clique em {name}.", "double-click": "Dê um duplo clique em {name}.", "right-click": "Acione o botão direito do mouse em {name}.",
     typing: "Insira o texto {value} no campo {name}.", select: "Selecione uma opção no campo {name}.", toggle: "Altere a opção {name}.",
     change: "Altere o campo {name}.", observation: "Observe {name}.", "highlight-text": "Certifique-se que {texto-iluminado}.",
-    "page-view": "Acesse a página {pageName}.", scroll: "Role a página até a posição {scrollY}.", generic: "Interaja com {name}."
+    "page-view": "Insira a url {url} e acesse a página {pageName}", scroll: "Role a página até a posição {scrollY}.", generic: "Interaja com {name}."
   },
   microprint: { heightPt: 11, maxWidthPt: 90, preserveAspectRatio: true },
   markers: { sizePt: 18 },
@@ -38,6 +39,11 @@ let recorderState = "idle", session = null, project = null, lastCaptureAt = 0;
 let eventQueue = Promise.resolve();
 let captureQueue = Promise.resolve();
 let initialization = null;
+let startingSession = false;
+function withTimeout(promise, ms, message) {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })]).finally(() => clearTimeout(timer));
+}
 let nativePort = null;
 const nativePending = new Map();
 
@@ -72,9 +78,11 @@ async function nativeSaveEvent(payload) {
 
 function migrateConfig(saved = {}) {
   const legacyColumns = Number(saved.configVersion || 0) < 3 ? DEFAULT_CONFIG.columns : (saved.columns || DEFAULT_CONFIG.columns);
-  const migrated = { ...saved, configVersion: 6, columns: legacyColumns.map((column, index) => ({ ...column, alignment: column.alignment || (index === 0 ? "center" : "left") })) };
+  const migrated = { ...saved, configVersion: 7, columns: legacyColumns.map((column, index) => ({ ...column, alignment: column.alignment || (index === 0 ? "center" : "left") })) };
   migrated.recording = { ...ChronoPolicy.defaults, ...saved.recording };
+  if (Number(saved.configVersion || 0) < 7) { migrated.recording.separateScreens = false; migrated.groupWindowMs = 0; }
   if (!saved.actionTexts?.typing || saved.actionTexts.typing === "Preencha o campo {name}.") migrated.actionTexts = { ...saved.actionTexts, typing: DEFAULT_CONFIG.actionTexts.typing };
+  if (!saved.actionTexts?.["page-view"] || saved.actionTexts["page-view"] === "Acesse a página {pageName}.") migrated.actionTexts = { ...(migrated.actionTexts || saved.actionTexts), "page-view": DEFAULT_CONFIG.actionTexts["page-view"] };
   return { ...DEFAULT_CONFIG, ...migrated, actionTexts: { ...DEFAULT_CONFIG.actionTexts, ...(migrated.actionTexts || {}) }, microprint: { ...DEFAULT_CONFIG.microprint, ...(migrated.microprint || {}) }, markers: { ...DEFAULT_CONFIG.markers, ...(migrated.markers || {}) }, theme: { ...DEFAULT_CONFIG.theme, ...(migrated.theme || {}) }, images: { screen: { ...DEFAULT_CONFIG.images.screen, ...(migrated.images?.screen || {}) }, component: { ...DEFAULT_CONFIG.images.component, ...(migrated.images?.component || {}) } } };
 }
 
@@ -84,6 +92,7 @@ async function loadState() {
     const stored = await chrome.storage.local.get(["chronoSession", "chronoProject", "chronoState", "chronoConfig"]);
     session = stored.chronoSession || null; project = stored.chronoProject || null; recorderState = stored.chronoState || "idle";
     if (session) session.config = migrateConfig(session.config);
+    if (recorderState === "finalizing") { recorderState = session?.finishedAt ? "finished" : "paused"; await saveState(); }
     if (session?.document?.state === "generating") {
       session.document = { state: "error", error: "A geração anterior foi interrompida. Clique em Gerar DOCX para tentar novamente." };
       await saveState();
@@ -134,13 +143,9 @@ async function visualSignature(dataUrl) {
 }
 function signatureDifference(a, b) { return !a?.length || a.length !== b?.length ? Infinity : a.reduce((sum, value, i) => sum + Math.abs(value - b[i]), 0) / a.length; }
 function groupIdFor(payload, signature) {
-  if (session.config.recording.separateScreens || payload.forceNewGroup) return `screen-${crypto.randomUUID()}`;
-  if (payload.forceNewGroup) return `screen-${String(session.groups.length + 1).padStart(3, "0")}`;
-  const last = session.steps.at(-1); if (!last) return "screen-001";
+  const last = session.steps.at(-1); if (!last) return `screen-${crypto.randomUUID()}`;
   const group = session.groups.find((item) => item.id === last.groupId);
-  const samePage = last.page.url.split("#")[0] === payload.page.url.split("#")[0] && last.page.pageName === payload.page.pageName;
-  const close = Date.parse(payload.timestamp) - Date.parse(last.timestamp) <= (session.config.groupWindowMs || 12000);
-  return samePage && close && signatureDifference(group?.signature, signature) <= 10 ? last.groupId : `screen-${String(session.groups.length + 1).padStart(3, "0")}`;
+  return ChronoPolicy.canGroup(group && { ...group, lastTimestamp: last.timestamp }, payload, signature, session.config) ? last.groupId : `screen-${crypto.randomUUID()}`;
 }
 async function captureEvent(payload, sender) {
   const screenDataUrl = await captureVisible(sender, payload);
@@ -148,6 +153,7 @@ async function captureEvent(payload, sender) {
   return { screenDataUrl, microDataUrl, signature: await visualSignature(screenDataUrl) };
 }
 async function addEvent(payload, media) {
+  if (ChronoPolicy.skipPageView(session, payload)) return { ok: true, skipped: true };
   const { screenDataUrl, microDataUrl, signature } = media;
   const duplicateIds = new Set(ChronoPolicy.duplicates(session.steps, payload, session.config.recording.repeatMode).map(step => step.id));
   const pendingScroll = payload.pendingScroll; delete payload.pendingScroll;
@@ -174,12 +180,38 @@ async function flushPages() {
     chrome.tabs.sendMessage(tab.id, { type: "FLUSH_PENDING" }).catch(() => null)));
 }
 async function startSession(name, root) {
+  if (startingSession) throw new Error("Uma nova gravação já está sendo iniciada.");
+  startingSession = true;
+  try {
   if (["recording", "paused", "finalizing"].includes(recorderState)) throw new Error("Finalize a gravação atual antes de iniciar outra.");
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !/^https?:|^file:/.test(tab.url || "")) throw new Error("Abra uma página web antes de iniciar a gravação.");
+  try {
+    const page = await withTimeout(chrome.tabs.sendMessage(tab.id, { type: "GET_PAGE" }), 3000, "A página não respondeu.");
+    if (!page?.url) throw new Error("Página indisponível");
+  } catch {
+    try {
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => { globalThis.__chronoClickInstalled = false; } });
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["recording-policy.js", "content.js"] });
+      const page = await withTimeout(chrome.tabs.sendMessage(tab.id, {type:"GET_PAGE"}), 3000, "A página não respondeu.");
+      if (!page?.url) throw new Error("Página indisponível");
+    } catch { throw new Error("Não foi possível conectar o gravador. Recarregue a extensão, confira a permissão de acesso a este site e atualize a página antes de tentar novamente."); }
+  }
   const stored = await chrome.storage.local.get("chronoConfig");
   const config = migrateConfig(stored.chronoConfig || {});
   if (root?.trim()) config.projectRoot = root.trim();
-  const response = await native("createProject", { name: name || `Projeto ${new Date().toLocaleString("pt-BR")}`, root: config.projectRoot, config });
-  project = response.project; session = response.session; recorderState = "recording"; await saveState(); await broadcastState(); return response;
+  await withTimeout(native("ping"), 5000, "O serviço local não respondeu. Execute o instalador do ChronoClick e recarregue a extensão.");
+  const response = await withTimeout(native("createProject", { name: name || `Projeto ${new Date().toLocaleString("pt-BR")}`, root: config.projectRoot, config }), 10000, "O serviço local não conseguiu criar o projeto a tempo. Confira a pasta de destino.");
+  const previous = {project,session,recorderState};
+  project = response.project; session = response.session; session.initialUrl = tab.url;
+  try {
+    await withTimeout(native("saveSession", { projectPath: project.root, session }), 5000, "Não foi possível salvar a nova sessão.");
+    recorderState = "recording"; await saveState();
+    const ack = await withTimeout(chrome.tabs.sendMessage(tab.id, {type:"START_RECORDING",recording:config.recording}), 3000, "A página não confirmou o início.");
+    if (!ack?.ok) throw new Error("A página não confirmou o início. Atualize a página e tente novamente.");
+    await broadcastState(); return response;
+  } catch (error) { project=previous.project; session=previous.session; recorderState=previous.recorderState; await saveState(); await broadcastState(); throw error; }
+  } finally { startingSession = false; }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -190,22 +222,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "GET_STATE") return { ok: true, state: recorderState, count: session?.steps.length || 0, project, document: session?.document, recording: session?.config?.recording || DEFAULT_CONFIG.recording, failures: session?.captureFailures || [], projectRoot: session?.config?.projectRoot || DEFAULT_CONFIG.projectRoot };
     if (message.type === "START") { await startSession(message.name, message.root); return { ok: true, state: recorderState, project }; }
     if (message.type === "PAUSE") { await flushPages(); recorderState = "paused"; await eventQueue; await saveState(); await broadcastState(); return { ok: true, state: recorderState }; }
-    if (message.type === "RESUME") { recorderState = "recording"; await saveState(); await broadcastState(); return { ok: true, state: recorderState }; }
+    if (message.type === "RESUME") {
+      if (!session || !project || !["paused", "finished"].includes(recorderState)) throw new Error("Não há gravação pausada ou finalizada para continuar.");
+      session.finishedAt = null;
+      await native("saveSession", { projectPath: project.root, session });
+      recorderState = "recording"; await saveState(); await broadcastState(); return { ok: true, state: recorderState };
+    }
     if (message.type === "STOP") {
+      try {
       await flushPages();
       recorderState = "finalizing"; await saveState(); await broadcastState();
       await eventQueue.catch(() => {});
       const response = await native("finish", { projectPath: project.root }); session = response.session; recorderState = "finished";
       await saveState(); await broadcastState(); return { ok: true, state: recorderState, count: session.steps.length, project };
+      } catch (error) { recorderState = "paused"; await saveState(); await broadcastState(); throw error; }
     }
     if (message.type === "RECORD_EVENT") {
       if (recorderState !== "recording") return { ok: false, error: "Gravação não está ativa." };
-      const captured = captureQueue.catch(() => {}).then(() => captureEvent(message.payload, sender));
+      const captured = captureQueue.catch(() => {}).then(() => ChronoPolicy.skipPageView(session, message.payload) ? { skipped: true } : captureEvent(message.payload, sender));
       captureQueue = captured.catch(() => {});
       const outcome = captured.then(media => ({ media }), error => ({ error }));
       eventQueue = eventQueue.catch(() => {}).then(async () => {
         const result = await outcome;
-        try { if (result.error) throw result.error; return await addEvent(message.payload, result.media); }
+        try { if (result.error) throw result.error; if (result.media.skipped) return { ok: true, skipped: true }; return await addEvent(message.payload, result.media); }
         catch (error) {
           session.captureFailures ||= [];
           session.captureFailures.push({ key: [message.payload.action, message.payload.page?.url, message.payload.component?.selector].join("|"), action: message.payload.action, timestamp: message.payload.timestamp, error: error.message });
@@ -221,7 +260,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (session?.document?.state === "generating") return { ok: true, session, project, state: recorderState };
       await eventQueue;
       const response = await native("getSession", { projectPath: project.root }); session = response.session; project = response.project;
-      if (Number(session.config?.configVersion || 0) < 6) { session.config = migrateConfig(session.config); await native("saveSession", { projectPath: project.root, session }); await saveState(); }
+      session.config = migrateConfig(session.config); await saveState();
       return { ok: true, session, project, state: recorderState };
     }
     if (message.type === "READ_IMAGE") return native("readImage", { projectPath: project.root, relativePath: message.relativePath });
