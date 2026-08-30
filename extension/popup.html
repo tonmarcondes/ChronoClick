@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="ui.css">
+  <title>ChronoClick</title>
+</head>
+<body class="popup">
+  <header><strong>ChronoClick <small id="version"></small></strong><span id="badge">Parado</span></header>
+  <p id="summary">Nenhuma gravação ativa.</p>
+  <label class="field">Nome do projeto<input id="projectName" placeholder="Ex.: Cadastro de cliente"></label>
+  <label class="field">Pasta raiz<input id="projectRoot" placeholder="${HOME}/sistemas/cronoPrint"></label>
+  <p id="folder" class="hint"></p>
+  <div class="actions">
+    <button id="start" class="primary">Iniciar nova</button>
+    <button id="pause">Pausar</button>
+    <button id="resume">Continuar</button>
+    <button id="observe">Adicionar observação</button>
+    <button id="highlight">Capturar texto selecionado</button>
+    <button id="stop" class="danger">Finalizar</button>
+    <button id="review">Revisar e configurar</button>
+    <button id="generate">Gerar DOCX</button>
+  </div>
+  <p id="documentStatus" class="hint" aria-live="polite"></p>
+  <p><a id="documentLink" href="#" hidden>Abrir DOCX gerado</a></p>
+  <p id="error" class="hint error"></p><p class="hint">A observação captura um componente sem executar o clique.</p>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+:root { color-scheme: light; font-family: Inter, system-ui, sans-serif; color: #172033; background: #f5f7fb; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select, textarea { font: inherit; }
+button { border: 1px solid #cbd3df; border-radius: 8px; padding: 9px 12px; background: white; cursor: pointer; }
+button:hover:not(:disabled) { border-color: #285589; }
+button:disabled { opacity: .42; cursor: not-allowed; }
+.primary { background: #285589; border-color: #285589; color: white; }
+.danger { color: #a11b2b; }
+.popup { width: 330px; padding: 16px; }
+.popup header { display: flex; align-items: center; justify-content: space-between; font-size: 18px; }
+#badge { border-radius: 999px; padding: 4px 9px; background: #e7ebf2; font-size: 12px; }
+#badge[data-state="recording"] { color: #087443; background: #dff6ea; }
+#badge[data-state="paused"] { color: #7c5d00; background: #fff3c4; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.actions button:nth-last-child(-n+3) { grid-column: 1 / -1; }
+.hint { color: #667085; font-size: 12px; margin-bottom: 0; }
+.error { color: #a11b2b; overflow-wrap: anywhere; }
+.review { max-width: 1180px; margin: 0 auto; padding: 28px; }
+.review header { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+.review h1 { margin: 0; }
+.card { background: white; border: 1px solid #dce2eb; border-radius: 12px; padding: 18px; margin-top: 18px; box-shadow: 0 4px 18px rgba(15,23,42,.04); }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.field { display: grid; gap: 5px; font-size: 13px; }
+.field input, .field select, .field textarea { width: 100%; border: 1px solid #cbd3df; border-radius: 7px; padding: 8px; background: white; }
+.steps { display: grid; gap: 12px; }
+.step { display: grid; grid-template-columns: 48px 150px minmax(0,1fr) auto; gap: 12px; align-items: center; border-top: 1px solid #e6eaf0; padding-top: 12px; }
+.step img { max-width: 140px; max-height: 74px; border: 1px solid #dce2eb; }
+.text-link { color: #0563c1; text-decoration: underline; overflow-wrap: anywhere; }
+.step textarea { min-height: 64px; }
+.muted { color: #667085; }
+summary { cursor: pointer; font-weight: 700; }
+#variables { line-height: 1.6; overflow-wrap: anywhere; }
+#documentStatus { overflow-wrap: anywhere; }
+#documentLink { color: #0563c1; font-weight: 700; }
+.columns { display: grid; gap: 8px; }
+.column { display: grid; grid-template-columns: 1fr 1.4fr 100px 130px auto; gap: 8px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .step { grid-template-columns: 40px 100px 1fr; } .step button { grid-column: 3; } }

@@ -1,0 +1,31 @@
+:root {
+  /* Tipografia */
+  --chrono-font-family: Aptos;
+  --chrono-body-font-size: 11;
+  --chrono-heading-color: #111827;
+
+  /* Tabela */
+  --chrono-table-header-background: #285589;
+  --chrono-table-header-color: #ffffff;
+  --chrono-table-border-color: #111111;
+
+  /* Cronocliques */
+  --chrono-marker-background: #000000;
+  --chrono-marker-color: #ffffff;
+  --chrono-marker-size: 18;
+
+  /* Componentes */
+  --chrono-component-bold: true;
+  --chrono-component-color: #111827;
+  --chrono-link-color: #0563c1;
+  --chrono-microprint-height: 11;
+  --chrono-microprint-max-width: 90;
+
+  /* Espaçamentos, em pontos */
+  --chrono-title-before: 0;
+  --chrono-title-after: 18;
+  --chrono-screen-before: 6;
+  --chrono-screen-after: 12;
+  --chrono-table-before: 8;
+  --chrono-table-after: 18;
+}
