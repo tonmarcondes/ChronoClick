@@ -37,7 +37,10 @@ function showColorPreviews() {
       preview.firstElementChild.style.backgroundColor = input.value;
       preview.lastElementChild.textContent = input.value.toUpperCase();
     };
-    input.oninput = update;
+    input.oninput = () => {
+      update();
+      if (input.id === "printBorderColor") $("printBorderEnabled").checked = true;
+    };
     update();
   });
 }
@@ -325,4 +328,9 @@ $("documentLink").onclick = async (event) => {
     $("status").textContent = `Erro: ${error.message}`;
   }
 };
+for (const id of ["printBorderWidth", "printBorderType"]) {
+  $(id).oninput = () => {
+    $("printBorderEnabled").checked = Number($("printBorderWidth").value) > 0;
+  };
+}
 load();

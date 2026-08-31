@@ -98,6 +98,13 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
     },
   });
   vm.runInContext(source("review.js").replace(/load\(\);\s*$/, ""), review);
+  element("printBorderEnabled").checked = false;
+  element("printBorderWidth").value = "2";
+  element("printBorderWidth").oninput();
+  assert.equal(element("printBorderEnabled").checked, true);
+  element("printBorderWidth").value = "0";
+  element("printBorderWidth").oninput();
+  assert.equal(element("printBorderEnabled").checked, false);
   vm.runInContext("session={config:{}};readForm=()=>{};", review);
   calls.length = 0;
   await element("save").onclick();
