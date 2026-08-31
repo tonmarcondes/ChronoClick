@@ -261,7 +261,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return eventQueue;
     }
     if (message.type === "GET_SESSION") {
-      if (!project) return { session: null, project: null, state: recorderState };
+      if (!project) {
+        const stored = await chrome.storage.local.get("chronoConfig");
+        return {ok:true,session:null,project:null,state:recorderState,config:migrateConfig(stored.chronoConfig || {})};
+      }
       if (session?.document?.state === "generating") return { ok: true, session, project, state: recorderState };
       await eventQueue;
       const response = await native("getSession", { projectPath: project.root }); session = response.session; project = response.project;
@@ -270,7 +273,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.type === "READ_IMAGE") return native("readImage", { projectPath: project.root, relativePath: message.relativePath });
     if (message.type === "SAVE_SESSION") { if (["recording", "finalizing"].includes(recorderState)) throw new Error("Pause ou finalize antes de editar os passos e configurações."); await eventQueue; session = message.session; await native("saveSession", { projectPath: project.root, session }); await saveState(); return { ok: true }; }
-    if (message.type === "SAVE_CONFIG") { session.config = migrateConfig(message.config); await native("saveSession", { projectPath: project.root, session }); await chrome.storage.local.set({ chronoConfig: session.config }); await saveState(); await broadcastState(); return { ok: true }; }
+    if (message.type === "SAVE_CONFIG") {
+      const config = migrateConfig(message.config);
+      await chrome.storage.local.set({chronoConfig:config});
+      if (session && project) {
+        session.config = config; await native("saveSession",{projectPath:project.root,session});
+        await saveState(); await broadcastState();
+      }
+      return {ok:true};
+    }
     if (message.type === "OPEN_DOCX") return native("openDocx", { projectPath: project?.root });
     if (message.type === "GENERATE_DOCX") {
       if (!project || !session) throw new Error("Inicie uma gravação antes de gerar o DOCX.");

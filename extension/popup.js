@@ -1,90 +1,91 @@
-const $ = (id) => document.getElementById(id);
-let starting = false;
-let refreshGeneration = 0;
-$("version").textContent = `v${chrome.runtime.getManifest().version}`;
+const $ = id => document.getElementById(id);
+let state = { state: "idle" };
+let busy = false;
+let newProject = false;
+let revision = 0;
+let closeTimer;
 
-async function activeTab() {
-  return (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+async function send(type, payload = {}) {
+  const response = await chrome.runtime.sendMessage({type,...payload});
+  if (!response || response.ok === false) throw new Error(response?.error || "Não foi possível concluir a ação.");
+  return response;
+}
+
+function render() {
+  const model = ChronoPopup.model(state,newProject);
+  const labels = {idle:"Pronto",recording:"Gravando",paused:"Pausado",finalizing:"Finalizando",finished:"Finalizado"};
+  $("badge").textContent = labels[state.state] || "Pronto";
+  $("badge").dataset.state = state.state;
+  $("summary").textContent = newProject || !state.project ? "" : `${state.count || 0} passo(s)`;
+  $("primaryAction").textContent = model.label;
+  $("primaryAction").disabled = busy || model.disabled;
+  $("projectField").hidden = !model.canStart;
+  $("captureTools").hidden = !model.recording;
+  $("pause").hidden = state.state !== "recording";
+  $("resume").hidden = state.state !== "paused";
+  $("observe").disabled = $("highlight").disabled = state.state !== "recording";
+  $("newProject").hidden = model.canStart || model.recording || model.disabled && !!state.count;
+  $("documentLink").hidden = newProject || state.document?.state !== "ready";
+  $("documentLink").title = state.document?.output || "";
+  const failures = newProject ? [] : state.failures || [];
+  $("captureWarnings").hidden = !failures.length;
+  $("warningCount").textContent = `${failures.length} captura(s) precisam de atenção`;
+  $("warningDetails").textContent = failures.map(item => item.error).join("\n");
+  $("partialConsent").hidden = model.action !== "GENERATE_DOCX" || !failures.length;
+  if (!failures.length) $("allowPartial").checked = false;
+  $("documentStatus").textContent = newProject ? "" : state.document?.state === "error" ? state.document.error : state.document?.state === "ready" ? "Documento pronto." : state.state === "finished" && !state.count ? "Nenhum passo salvo. Inicie outro projeto para gravar novamente." : "";
 }
 
 async function refresh() {
-  if (starting) return;
-  const generation = refreshGeneration;
-  const data = await chrome.runtime.sendMessage({ type: "GET_STATE" });
-  if (starting || generation !== refreshGeneration) return;
-  const labels = { idle: "Parado", recording: "Gravando", paused: "Pausado", finalizing: "Finalizando", finished: "Finalizado" };
-  $("badge").textContent = labels[data.state] || data.state;
-  $("badge").dataset.state = data.state;
-  $("summary").textContent = `${data.count || 0} evento(s) capturado(s).`;
-  $("partialConsent").hidden = !data.failures?.length;
-  if (!data.failures?.length) $("allowPartial").checked = false;
-  $("captureWarnings").textContent = data.failures?.length ? `${data.failures.length} captura(s) falharam: ${data.failures.at(-1).error}` : "";
-  $("folder").textContent = data.project?.root || "Pasta raiz: ~/sistemas/cronoPrint";
-  if (!$("projectRoot").value) $("projectRoot").value = data.projectRoot || "${HOME}/sistemas/cronoPrint";
-  $("pause").disabled = data.state !== "recording";
-  $("resume").disabled = !["paused", "finished"].includes(data.state);
-  $("observe").disabled = data.state !== "recording";
-  $("stop").disabled = !["recording", "paused"].includes(data.state);
-  $("generate").disabled = !data.count || data.document?.state === "generating" || ["recording", "finalizing"].includes(data.state);
-  $("documentLink").hidden = data.document?.state !== "ready";
-  $("documentLink").title = data.document?.output || "";
-  $("documentStatus").textContent = data.document?.state === "generating" ? "Gerando DOCX… Aguarde." : data.document?.state === "ready" ? `Pronto: ${data.document.output}` : data.document?.state === "error" ? data.document.error : "";
-  if (!data.count && data.state === "finished") $("documentStatus").textContent = "Nenhum evento foi salvo: não há conteúdo para gerar o DOCX. Atualize a página, inicie uma nova gravação e confira se o contador aumenta antes de finalizar.";
-  $("start").disabled = ["recording", "paused", "finalizing"].includes(data.state);
+  if (busy) return;
+  const requestRevision = revision;
+  const data = await send("GET_STATE");
+  if (busy || requestRevision !== revision) return;
+  state = data;
+  render();
 }
 
-$("start").onclick = async () => {
-  if (starting) return;
-  starting = true; refreshGeneration++; $("start").disabled = true;
-  $("documentLink").hidden = true; $("documentLink").title = "";
-  $("documentStatus").textContent = ""; $("summary").textContent = "Iniciando nova gravação…";
-  $("captureWarnings").textContent = ""; $("partialConsent").hidden = true; $("allowPartial").checked = false;
-  $("error").textContent = "Conectando o gravador à página…";
-  try {
-    const response = await chrome.runtime.sendMessage({ type: "START", name: $("projectName").value.trim(), root: $("projectRoot").value.trim() });
-    if (!response?.ok) throw new Error(response?.error || "Não foi possível iniciar a gravação.");
-    $("error").textContent = "Gravação iniciada. Este painel fecha em 3 segundos.";
-    setTimeout(() => window.close(), 3000);
-    starting = false;
-    await refresh();
-  } catch (error) { starting = false; await refresh().catch(() => {}); $("error").textContent = error.message; }
-};
-$("pause").onclick = async () => { await chrome.runtime.sendMessage({ type: "PAUSE" }); await refresh(); };
-$("resume").onclick = async () => { await chrome.runtime.sendMessage({ type: "RESUME" }); await refresh(); };
-$("stop").onclick = async () => {
-  $("error").textContent = "Finalizando e salvando imagens...";
-  const response = await chrome.runtime.sendMessage({ type: "STOP" });
-  $("error").textContent = response?.ok ? "Gravação finalizada." : `Erro: ${response?.error}`;
-  await refresh();
-};
-$("generate").onclick = async () => {
-  const state = await chrome.runtime.sendMessage({ type: "GET_STATE" });
-  const allowPartial = !!state.failures?.length && $("allowPartial").checked;
-  if (state.failures?.length && !allowPartial) { $("error").textContent = "Marque a autorização abaixo para exportar os passos salvos, ou refaça as capturas que falharam."; return; }
-  $("generate").disabled = true; $("documentLink").hidden = true;
-  $("documentStatus").textContent = "Gerando DOCX… Aguarde.";
-  try {
-    const response = await chrome.runtime.sendMessage({ type: "GENERATE_DOCX", allowPartial });
-    $("error").textContent = response?.ok ? "" : response?.error;
-  } catch (error) { $("error").textContent = error.message; }
-  await refresh();
-};
-$("documentLink").onclick = async event => {
-  event.preventDefault();
-  const result = await chrome.runtime.sendMessage({ type: "OPEN_DOCX" });
-  if (!result?.ok) $("error").textContent = result?.error || "Não foi possível abrir o arquivo.";
-};
-$("review").onclick = () => chrome.runtime.openOptionsPage();
-$("observe").onclick = async () => {
-  const tab = await activeTab();
-  if (tab?.id) await chrome.tabs.sendMessage(tab.id, { type: "OBSERVE_NEXT" });
-  window.close();
-};
-$("highlight").onclick = async () => {
-  const tab = await activeTab();
-  const response = tab?.id ? await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE_SELECTION" }) : null;
-  $("error").textContent = response?.ok ? "Texto selecionado capturado." : (response?.error || "Selecione um texto na página antes de capturar.");
-};
+async function run(task) {
+  if (busy) return;
+  clearTimeout(closeTimer);
+  busy = true; revision++; $("error").textContent = ""; render();
+  try { await task(); }
+  catch (error) { $("error").textContent = error.message; }
+  finally { busy = false; await refresh().catch(error => { $("error").textContent = error.message; render(); }); }
+}
 
-refresh();
-setInterval(() => refresh().catch(() => {}), 1500);
+$("primaryAction").onclick = () => run(async () => {
+  const action = ChronoPopup.model(state,newProject).action;
+  if (action === "START") {
+    $("documentLink").hidden = true;
+    $("documentStatus").textContent = "Conectando à página…";
+    await send("START",{name:$("projectName").value.trim()});
+    newProject = false;
+    closeTimer = setTimeout(() => window.close(),3000);
+  } else if (action === "STOP") {
+    $("documentStatus").textContent = "Salvando as capturas…";
+    await send("STOP");
+  } else if (action === "GENERATE_DOCX") {
+    const latest = await send("GET_STATE");
+    if (latest.failures?.length && !$("allowPartial").checked) throw new Error("Confirme a exportação dos passos salvos ou revise as capturas com falha.");
+    $("documentStatus").textContent = "Gerando DOCX…";
+    await send("GENERATE_DOCX",{allowPartial:$("allowPartial").checked});
+  }
+});
+$("newProject").onclick = () => { newProject = true; $("projectName").value = ""; $("error").textContent = ""; render(); };
+$("review").onclick = () => { clearTimeout(closeTimer); chrome.runtime.openOptionsPage(); };
+$("pause").onclick = () => run(() => send("PAUSE"));
+$("resume").onclick = () => run(() => send("RESUME"));
+$("documentLink").onclick = event => { event.preventDefault(); return run(() => send("OPEN_DOCX")); };
+async function captureTool(type) {
+  const [tab] = await chrome.tabs.query({active:true,currentWindow:true});
+  if (!tab?.id) throw new Error("Abra a página que deseja capturar.");
+  const result = await chrome.tabs.sendMessage(tab.id,{type});
+  if (result?.ok === false) throw new Error(result.error);
+  window.close();
+}
+$("observe").onclick = () => run(() => captureTool("OBSERVE_NEXT"));
+$("highlight").onclick = () => run(() => captureTool("CAPTURE_SELECTION"));
+$("version").textContent = `v${chrome.runtime.getManifest().version}`;
+refresh().catch(error => { $("error").textContent = error.message; });
+setInterval(() => refresh().catch(error => { $("error").textContent = error.message; }),1500);

@@ -1,5 +1,6 @@
 :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; color: #172033; background: #f5f7fb; }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; }
 button, input, select, textarea { font: inherit; }
 button { border: 1px solid #cbd3df; border-radius: 8px; padding: 9px 12px; background: white; cursor: pointer; }
@@ -8,6 +9,18 @@ button:disabled { opacity: .42; cursor: not-allowed; }
 .primary { background: #285589; border-color: #285589; color: white; }
 .danger { color: #a11b2b; }
 .popup { width: 330px; padding: 16px; }
+.popup { padding: 22px; background: #fff; }
+.popup header small { display: block; color: #667085; font-size: 11px; font-weight: 400; margin-top: 3px; }
+.icon-button { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; padding: 8px; color: #475569; }
+.icon-button:hover { background: #eef2f6; }
+.recording-status { display: flex; align-items: center; justify-content: space-between; margin: 20px 0; font-size: 12px; color: #667085; }
+.main-action { width: 100%; min-height: 46px; margin-top: 18px; border-radius: 24px; }
+.document-link { display: block; margin: 16px 0; text-align: center; }
+.text-button { display: block; margin: 8px auto; border: 0; font-size: 12px; color: #475569; }
+.capture-tools { display: grid; gap: 8px; margin-top: 12px; }
+#captureTools { margin-top: 18px; font-size: 12px; color: #667085; }
+.partial-consent { display: flex; gap: 8px; margin-top: 12px; font-size: 12px; line-height: 1.5; }
+#warningDetails { white-space: pre-line; }
 .popup header { display: flex; align-items: center; justify-content: space-between; font-size: 18px; }
 #badge { border-radius: 999px; padding: 4px 9px; background: #e7ebf2; font-size: 12px; }
 #badge[data-state="recording"] { color: #087443; background: #dff6ea; }

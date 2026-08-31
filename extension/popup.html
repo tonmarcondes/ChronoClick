@@ -1,32 +1,24 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="ui.css">
-  <title>ChronoClick</title>
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="ui.css"><title>ChronoClick</title></head>
 <body class="popup">
-  <header><strong>ChronoClick <small id="version"></small></strong><span id="badge">Parado</span></header>
-  <p id="summary">Nenhuma gravação ativa.</p>
-  <label class="field">Nome do projeto<input id="projectName" placeholder="Ex.: Cadastro de cliente"></label>
-  <label class="field">Pasta raiz<input id="projectRoot" placeholder="${HOME}/sistemas/cronoPrint"></label>
-  <p id="folder" class="hint"></p>
-  <div class="actions">
-    <button id="start" class="primary">Iniciar nova</button>
-    <button id="pause">Pausar</button>
-    <button id="resume">Continuar</button>
-    <button id="observe">Adicionar observação</button>
-    <button id="highlight">Capturar texto selecionado</button>
-    <button id="stop" class="danger">Finalizar</button>
-    <button id="review">Revisar e configurar</button>
-    <button id="generate">Gerar DOCX</button>
-  </div>
-  <p id="documentStatus" class="hint" aria-live="polite"></p>
-  <p id="captureWarnings" class="hint error"></p>
-  <label id="partialConsent" hidden><input id="allowPartial" type="checkbox"> Autorizo gerar somente os passos salvos, com aviso das capturas que falharam.</label>
-  <p><a id="documentLink" href="#" hidden>Abrir DOCX gerado</a></p>
-  <p id="error" class="hint error"></p><p class="hint">A observação captura um componente sem executar o clique.</p>
-  <script src="popup.js"></script>
-</body>
-</html>
+  <header><div><strong>ChronoClick</strong><small id="version"></small></div>
+    <button id="review" class="icon-button" title="Revisar e configurar" aria-label="Revisar e configurar">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.5-2.4 1a7 7 0 0 0-1.7-1L15 3h-4l-.4 2.9a7 7 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.5 2.4-1a7 7 0 0 0 1.7 1L11 21h4l.4-2.9a7 7 0 0 0 1.7-1l2.4 1 2-3.5-2.1-1.6ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg>
+    </button>
+  </header>
+  <div class="recording-status"><span id="badge">Pronto</span><span id="summary"></span></div>
+  <label id="projectField" class="field">Nome do projeto<input id="projectName" placeholder="Ex.: Cadastro de cliente" autocomplete="off"></label>
+  <button id="primaryAction" class="primary main-action">Iniciar nova</button>
+  <p id="documentStatus" class="hint" role="status" aria-live="polite"></p>
+  <a id="documentLink" class="document-link" href="#" hidden>Abrir documento Word</a>
+  <button id="newProject" class="text-button" hidden>Iniciar outro projeto</button>
+  <details id="captureTools" hidden><summary>Ferramentas de captura</summary><div class="capture-tools">
+    <button id="pause">Pausar</button><button id="resume">Continuar</button>
+    <button id="observe">Marcar observação</button><button id="highlight">Capturar texto selecionado</button>
+  </div></details>
+  <details id="captureWarnings" class="hint error" hidden><summary id="warningCount"></summary><p id="warningDetails"></p></details>
+  <label id="partialConsent" class="partial-consent" hidden><input id="allowPartial" type="checkbox"> Gerar os passos salvos, com aviso das capturas que falharam.</label>
+  <p id="error" class="hint error" role="alert"></p>
+  <script src="popup-model.js"></script><script src="popup.js"></script>
+</body></html>

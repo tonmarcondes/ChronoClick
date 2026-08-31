@@ -1,4 +1,5 @@
 let session;
+let editingDefaults = false;
 const $ = (id) => document.getElementById(id);
 const colorIn = (value) => `#${String(value || "000000").replace("#", "")}`;
 const colorOut = (value) => value.replace("#", "").toUpperCase();
@@ -116,8 +117,11 @@ function readForm() {
 
 async function load() {
   const data = await chrome.runtime.sendMessage({ type: "GET_SESSION" });
-  if (!data.session) { $("status").textContent = "Inicie uma gravação antes de revisar."; return; }
-  session = data.session;
+  if (!data.ok) { $("status").textContent = data.error || "Não foi possível carregar as configurações."; return; }
+  editingDefaults = !data.session;
+  session = data.session || {steps:[],groups:[],config:data.config};
+  $("generate").disabled = editingDefaults;
+  if (editingDefaults) $("status").textContent = "Estas configurações serão usadas nos próximos projetos.";
   $("documentLink").hidden = session.document?.state !== "ready";
   const c = session.config, t = c.theme;
   document.querySelectorAll("[data-recording]").forEach(input => input.value = String(c.recording?.[input.dataset.recording] ?? ""));
@@ -169,8 +173,11 @@ async function load() {
 $("addColumn").onclick = () => { session.config.columns.push({ title: "NOVA COLUNA", source: ["editable"], width: 20, alignment: "left" }); renderColumns(); };
 $("save").onclick = async () => {
   try {
-    readForm(); const saved = await chrome.runtime.sendMessage({ type: "SAVE_SESSION", session });
-    if (!saved?.ok) throw new Error(saved?.error || "Não foi possível salvar a sessão.");
+    readForm();
+    if (!editingDefaults) {
+      const saved = await chrome.runtime.sendMessage({ type: "SAVE_SESSION", session });
+      if (!saved?.ok) throw new Error(saved?.error || "Não foi possível salvar a sessão.");
+    }
     const configured = await chrome.runtime.sendMessage({ type: "SAVE_CONFIG", config: session.config });
     if (!configured?.ok) throw new Error(configured?.error || "Não foi possível salvar a configuração.");
     $("status").textContent = "Alterações salvas.";
