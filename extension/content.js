@@ -6,23 +6,43 @@
   let receivedExplicitState = false;
   let options = { ...ChronoPolicy.defaults };
   const documentToken = crypto.randomUUID();
-  const dirtyFields = new Map(), pendingSends = new Set();
+  const dirtyFields = new Map(),
+    pendingSends = new Set();
   const linkCaptures = new WeakMap();
   let pendingScroll = null;
   const scrollPositions = new WeakMap();
   let observeNext = false;
-  let lastKnownUrl = location.href, lastPageViewUrl = "";
-  let pageViewTimer = null, scrollTimer = null;
-  let lastRecordedScrollX = scrollX, lastRecordedScrollY = scrollY;
+  let lastKnownUrl = location.href,
+    lastPageViewUrl = "";
+  let pageViewTimer = null,
+    scrollTimer = null;
+  let lastRecordedScrollX = scrollX,
+    lastRecordedScrollY = scrollY;
 
   const interactiveSelector = [
-    "button", "a", "input", "select", "textarea", "summary",
-    "[role='button']", "[role='link']", "[role='tab']", "[role='menuitem']",
-    "[role='checkbox']", "[role='radio']", "[role='switch']", "[role='option']",
-    "[contenteditable='true']", "[tabindex]"
+    "button",
+    "a",
+    "input",
+    "select",
+    "textarea",
+    "summary",
+    "[role='button']",
+    "[role='link']",
+    "[role='tab']",
+    "[role='menuitem']",
+    "[role='checkbox']",
+    "[role='radio']",
+    "[role='switch']",
+    "[role='option']",
+    "[contenteditable='true']",
+    "[tabindex]",
   ].join(",");
 
-  const clean = (value, max = 160) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
+  const clean = (value, max = 160) =>
+    String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, max);
 
   function cssEscape(value) {
     if (globalThis.CSS?.escape) return CSS.escape(value);
@@ -53,14 +73,24 @@
     if (aria) return aria;
     const labelledBy = element.getAttribute("aria-labelledby");
     if (labelledBy) {
-      const text = labelledBy.split(/\s+/).map((id) => document.getElementById(id)?.innerText || "").join(" ");
+      const text = labelledBy
+        .split(/\s+/)
+        .map((id) => document.getElementById(id)?.innerText || "")
+        .join(" ");
       if (clean(text)) return text;
     }
-    if (element.labels?.length) return [...element.labels].map((label) => label.innerText).join(" ");
+    if (element.labels?.length)
+      return [...element.labels].map((label) => label.innerText).join(" ");
     const wrappingLabel = element.closest("label");
     if (wrappingLabel) return wrappingLabel.innerText;
-    return element.getAttribute("title") || element.getAttribute("alt") ||
-      element.getAttribute("placeholder") || element.innerText || element.getAttribute("name") || element.id;
+    return (
+      element.getAttribute("title") ||
+      element.getAttribute("alt") ||
+      element.getAttribute("placeholder") ||
+      element.innerText ||
+      element.getAttribute("name") ||
+      element.id
+    );
   }
 
   function roleFor(element) {
@@ -86,9 +116,20 @@
     let appearance;
     if (target.matches("a[href]")) {
       const style = getComputedStyle(target);
-      appearance = ChronoPolicy.linkAppearance({role:target.getAttribute("role"), menu:!!target.closest('nav,[role="menu"],[role="menubar"],[role="navigation"]'),classes:target.className,background:style.backgroundColor,padding:Math.max(parseFloat(style.paddingLeft)||0,parseFloat(style.paddingTop)||0),border:parseFloat(style.borderTopWidth)||0});
+      appearance = ChronoPolicy.linkAppearance({
+        role: target.getAttribute("role"),
+        menu: !!target.closest('nav,[role="menu"],[role="menubar"],[role="navigation"]'),
+        classes: target.className,
+        background: style.backgroundColor,
+        padding: Math.max(parseFloat(style.paddingLeft) || 0, parseFloat(style.paddingTop) || 0),
+        border: parseFloat(style.borderTopWidth) || 0,
+      });
     }
-    const isTextLink = roleFor(target) === "link" && (!appearance || appearance === "link") && !target.matches("img,svg,picture,canvas") && !target.querySelector("img,svg,picture,canvas");
+    const isTextLink =
+      roleFor(target) === "link" &&
+      (!appearance || appearance === "link") &&
+      !target.matches("img,svg,picture,canvas") &&
+      !target.querySelector("img,svg,picture,canvas");
     return {
       component: {
         tagName: target.tagName.toLowerCase(),
@@ -96,10 +137,10 @@
         appearance,
         name: clean(findLabel(target)) || `${roleFor(target)} sem nome`,
         selector: selectorFor(target),
-        textOnlyLink: isTextLink
+        textOnlyLink: isTextLink,
       },
       rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-      click: null
+      click: null,
     };
   }
 
@@ -110,19 +151,26 @@
       documentToken,
       browserTitle: clean(document.title),
       heading: clean(h1?.innerText),
-      pageName: clean(h1?.innerText) || clean(document.title) || location.pathname || location.hostname,
+      pageName:
+        clean(h1?.innerText) || clean(document.title) || location.pathname || location.hostname,
       viewportWidth: innerWidth,
       viewportHeight: innerHeight,
       scrollX,
       scrollY,
-      devicePixelRatio
+      devicePixelRatio,
     };
   }
 
   function record(action, element, extra = {}) {
     if (state !== "recording" || !element || element.closest?.("[data-chrono-recorder-ui]")) return;
     const data = describe(element);
-    return sendEvent({ action, ...data, page: pageInfo(), timestamp: new Date().toISOString(), ...extra });
+    return sendEvent({
+      action,
+      ...data,
+      page: pageInfo(),
+      timestamp: new Date().toISOString(),
+      ...extra,
+    });
   }
 
   function sendEvent(payload) {
@@ -130,17 +178,22 @@
       payload.pendingScroll = pendingScroll;
       pendingScroll = null;
     }
-    const sending = chrome.runtime.sendMessage({
-      type: "RECORD_EVENT",
-      payload
-    }).catch(() => ({ ok: false }));
-    pendingSends.add(sending); sending.finally(() => pendingSends.delete(sending));
+    const sending = chrome.runtime
+      .sendMessage({
+        type: "RECORD_EVENT",
+        payload,
+      })
+      .catch(() => ({ ok: false }));
+    pendingSends.add(sending);
+    sending.finally(() => pendingSends.delete(sending));
     return sending;
   }
 
   function flushTyping(element) {
-    const entry = dirtyFields.get(element); if (!entry || entry.composing) return;
-    clearTimeout(entry.timer); dirtyFields.delete(element);
+    const entry = dirtyFields.get(element);
+    if (!entry || entry.composing) return;
+    clearTimeout(entry.timer);
+    dirtyFields.delete(element);
     return record("typing", element, { value: ChronoPolicy.typedValue(element, options) });
   }
 
@@ -153,110 +206,219 @@
     if (state !== "recording") return;
     const page = pageInfo();
     return sendEvent({
-        action, timestamp: new Date().toISOString(), page, noMicroprint: true, forceNewGroup: true,
-        component: { tagName: "body", role: "page", name: page.pageName, selector: "body" },
-        rect: { x: 0, y: 0, width: innerWidth, height: innerHeight }, click: null, ...extra
+      action,
+      timestamp: new Date().toISOString(),
+      page,
+      noMicroprint: true,
+      forceNewGroup: true,
+      component: { tagName: "body", role: "page", name: page.pageName, selector: "body" },
+      rect: { x: 0, y: 0, width: innerWidth, height: innerHeight },
+      click: null,
+      ...extra,
     });
   }
 
   function schedulePageView() {
     clearTimeout(pageViewTimer);
-    pageViewTimer = setTimeout(() => {
-      if (state !== "recording" || !options.pageViews || document.visibilityState !== "visible" || lastPageViewUrl === location.href) return;
-      lastPageViewUrl = location.href;
-      recordPageAction("page-view");
-    }, document.readyState === "complete" ? 500 : 900);
+    pageViewTimer = setTimeout(
+      () => {
+        if (
+          state !== "recording" ||
+          !options.pageViews ||
+          document.visibilityState !== "visible" ||
+          lastPageViewUrl === location.href
+        )
+          return;
+        lastPageViewUrl = location.href;
+        recordPageAction("page-view");
+      },
+      document.readyState === "complete" ? 500 : 900,
+    );
   }
 
   async function captureSelection() {
     if (state !== "recording") return { ok: false, error: "A gravação não está ativa." };
     const selection = getSelection();
     const selectedText = clean(selection?.toString(), 500);
-    if (!selection?.rangeCount || !selectedText) return { ok: false, error: "Nenhum texto está selecionado." };
-    const range = selection.getRangeAt(0), rect = range.getBoundingClientRect();
-    let target = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
-    target = target?.closest?.("p,li,h1,h2,h3,h4,h5,h6,td,th,label,article,section,div,span") || target || document.body;
+    if (!selection?.rangeCount || !selectedText)
+      return { ok: false, error: "Nenhum texto está selecionado." };
+    const range = selection.getRangeAt(0),
+      rect = range.getBoundingClientRect();
+    let target =
+      range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+        ? range.commonAncestorContainer
+        : range.commonAncestorContainer.parentElement;
+    target =
+      target?.closest?.("p,li,h1,h2,h3,h4,h5,h6,td,th,label,article,section,div,span") ||
+      target ||
+      document.body;
     const response = await sendEvent({
-        action: "highlight-text", timestamp: new Date().toISOString(), selectedText,
-        component: { tagName: target.tagName.toLowerCase(), role: "text", name: selectedText, selector: selectorFor(target) },
-        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }, click: null, page: pageInfo()
+      action: "highlight-text",
+      timestamp: new Date().toISOString(),
+      selectedText,
+      component: {
+        tagName: target.tagName.toLowerCase(),
+        role: "text",
+        name: selectedText,
+        selector: selectorFor(target),
+      },
+      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      click: null,
+      page: pageInfo(),
     });
     return response?.ok === false ? response : { ok: true };
   }
 
-  document.addEventListener("pointerdown", (event) => {
-    if (state !== "recording" || event.target.closest?.("[data-chrono-recorder-ui]")) return;
-    for (const field of [...dirtyFields.keys()]) if (field !== event.target) flushTyping(field);
-    if (observeNext) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      observeNext = false;
-      record("observation", event.target, { click: { x: event.clientX, y: event.clientY, button: event.button } });
-      return;
-    }
-    const interactive = event.target.closest?.(interactiveSelector);
-    if (!interactive) return;
-    const action = event.button === 2 ? "right-click" : event.detail >= 2 ? "double-click" : "click";
-    const captured = record(action, interactive, { click: { x: event.clientX, y: event.clientY, button: event.button } });
-    if (interactive.matches("a[href]")) linkCaptures.set(interactive, captured);
-  }, true);
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (state !== "recording" || event.target.closest?.("[data-chrono-recorder-ui]")) return;
+      for (const field of [...dirtyFields.keys()]) if (field !== event.target) flushTyping(field);
+      if (observeNext) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        observeNext = false;
+        record("observation", event.target, {
+          click: { x: event.clientX, y: event.clientY, button: event.button },
+        });
+        return;
+      }
+      const interactive = event.target.closest?.(interactiveSelector);
+      if (!interactive) return;
+      const action =
+        event.button === 2 ? "right-click" : event.detail >= 2 ? "double-click" : "click";
+      const captured = record(action, interactive, {
+        click: { x: event.clientX, y: event.clientY, button: event.button },
+      });
+      if (interactive.matches("a[href]")) linkCaptures.set(interactive, captured);
+    },
+    true,
+  );
 
-  document.addEventListener("click", event => {
+  document.addEventListener("click", (event) => {
     const anchor = event.target.closest?.("a[href]");
-    if (!anchor || state !== "recording" || !options.delayLinkNavigation || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
+    if (
+      !anchor ||
+      state !== "recording" ||
+      !options.delayLinkNavigation ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.altKey ||
+      anchor.hasAttribute("download") ||
+      (anchor.target && anchor.target !== "_self")
+    )
+      return;
     const url = new URL(anchor.href, location.href);
-    if (!/^https?:$/.test(url.protocol) || url.href.split("#")[0] === location.href.split("#")[0]) return;
-    const captured = linkCaptures.get(anchor); if (!captured) return;
-    event.preventDefault(); linkCaptures.delete(anchor);
+    if (!/^https?:$/.test(url.protocol) || url.href.split("#")[0] === location.href.split("#")[0])
+      return;
+    const captured = linkCaptures.get(anchor);
+    if (!captured) return;
+    event.preventDefault();
+    linkCaptures.delete(anchor);
     captured.finally(() => location.assign(url.href));
   });
 
-  document.addEventListener("change", (event) => {
-    const element = event.target;
-    if (!(element instanceof Element)) return;
-    let action = "change";
-    let value = "";
-    if (element.matches("select")) { action = "select"; value = clean(element.selectedOptions?.[0]?.textContent); }
-    else if (element.matches("input[type='checkbox'],input[type='radio']")) { action = "toggle"; value = element.checked ? "checked" : "unchecked"; }
-    else if (element.matches("input,textarea,[contenteditable='true']")) {
-      flushTyping(element); return;
-    }
-    record(action, element, { value });
-  }, true);
+  document.addEventListener(
+    "change",
+    (event) => {
+      const element = event.target;
+      if (!(element instanceof Element)) return;
+      let action = "change";
+      let value = "";
+      if (element.matches("select")) {
+        action = "select";
+        value = clean(element.selectedOptions?.[0]?.textContent);
+      } else if (element.matches("input[type='checkbox'],input[type='radio']")) {
+        action = "toggle";
+        value = element.checked ? "checked" : "unchecked";
+      } else if (element.matches("input,textarea,[contenteditable='true']")) {
+        flushTyping(element);
+        return;
+      }
+      record(action, element, { value });
+    },
+    true,
+  );
 
-  document.addEventListener("input", event => {
-    const element = event.target;
-    if (state !== "recording" || !element.matches("input:not([type=checkbox]):not([type=radio]),textarea,[contenteditable=true]")) return;
-    const prior = dirtyFields.get(element); clearTimeout(prior?.timer);
-    const entry = { composing: event.isComposing, timer: null }; dirtyFields.set(element, entry);
-    if (options.typingFinish === "idle" && !event.isComposing) entry.timer = setTimeout(() => flushTyping(element), options.typingIdleMs);
-  }, true);
-  document.addEventListener("compositionend", event => {
-    const entry = dirtyFields.get(event.target); if (entry) entry.composing = false;
-  }, true);
-  document.addEventListener("focusout", event => { const entry = dirtyFields.get(event.target); if (entry) entry.composing = false; flushTyping(event.target); }, true);
-  document.addEventListener("keydown", event => {
-    if (state !== "recording" || event.isComposing) return;
-    if (event.key === "Enter" && event.target.matches("input")) flushTyping(event.target);
-    else if (["Enter", " "].includes(event.key) && event.target.matches("button,a,[role=button]")) record("click", event.target);
-  }, true);
+  document.addEventListener(
+    "input",
+    (event) => {
+      const element = event.target;
+      if (
+        state !== "recording" ||
+        !element.matches(
+          "input:not([type=checkbox]):not([type=radio]),textarea,[contenteditable=true]",
+        )
+      )
+        return;
+      const prior = dirtyFields.get(element);
+      clearTimeout(prior?.timer);
+      const entry = { composing: event.isComposing, timer: null };
+      dirtyFields.set(element, entry);
+      if (options.typingFinish === "idle" && !event.isComposing)
+        entry.timer = setTimeout(() => flushTyping(element), options.typingIdleMs);
+    },
+    true,
+  );
+  document.addEventListener(
+    "compositionend",
+    (event) => {
+      const entry = dirtyFields.get(event.target);
+      if (entry) entry.composing = false;
+    },
+    true,
+  );
+  document.addEventListener(
+    "focusout",
+    (event) => {
+      const entry = dirtyFields.get(event.target);
+      if (entry) entry.composing = false;
+      flushTyping(event.target);
+    },
+    true,
+  );
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (state !== "recording" || event.isComposing) return;
+      if (event.key === "Enter" && event.target.matches("input")) flushTyping(event.target);
+      else if (["Enter", " "].includes(event.key) && event.target.matches("button,a,[role=button]"))
+        record("click", event.target);
+    },
+    true,
+  );
 
-  document.addEventListener("scroll", event => {
-    if (state !== "recording") return;
-    if (options.scrollMode === "off") return;
-    const target = event.target === document ? document.documentElement : event.target;
-    const isPage = target === document.documentElement || target === document.body;
-    const x = isPage ? scrollX : target.scrollLeft, y = isPage ? scrollY : target.scrollTop;
-    const prior = scrollPositions.get(target) || { x: 0, y: 0 };
-    if (Math.hypot(x - prior.x, y - prior.y) < options.scrollMinPx) return;
-    scrollPositions.set(target, { x, y });
-    pendingScroll = { timestamp: new Date().toISOString(), scrollX: x, scrollY: y, selector: isPage ? "body" : selectorFor(target) };
-    clearTimeout(scrollTimer);
-    if (options.scrollMode === "all") scrollTimer = setTimeout(() => {
-      const latest = pendingScroll; pendingScroll = null;
-      if (latest) recordPageAction("scroll", latest);
-    }, options.scrollIdleMs);
-  }, { passive: true, capture: true });
+  document.addEventListener(
+    "scroll",
+    (event) => {
+      if (state !== "recording") return;
+      if (options.scrollMode === "off") return;
+      const target = event.target === document ? document.documentElement : event.target;
+      const isPage = target === document.documentElement || target === document.body;
+      const x = isPage ? scrollX : target.scrollLeft,
+        y = isPage ? scrollY : target.scrollTop;
+      const prior = scrollPositions.get(target) || { x: 0, y: 0 };
+      if (Math.hypot(x - prior.x, y - prior.y) < options.scrollMinPx) return;
+      scrollPositions.set(target, { x, y });
+      pendingScroll = {
+        timestamp: new Date().toISOString(),
+        scrollX: x,
+        scrollY: y,
+        selector: isPage ? "body" : selectorFor(target),
+      };
+      clearTimeout(scrollTimer);
+      if (options.scrollMode === "all")
+        scrollTimer = setTimeout(() => {
+          const latest = pendingScroll;
+          pendingScroll = null;
+          if (latest) recordPageAction("scroll", latest);
+        }, options.scrollIdleMs);
+    },
+    { passive: true, capture: true },
+  );
 
   // Detecta também rotas SPA que alteram a URL sem recarregar o documento.
   setInterval(() => {
@@ -271,34 +433,89 @@
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     if (message.type === "START_RECORDING") {
       receivedExplicitState = true;
-      options = { ...options, ...message.recording }; state = "recording";
-      lastPageViewUrl = ""; pendingScroll = null;
-      schedulePageView(); respond({ok:true}); return;
+      options = { ...options, ...message.recording };
+      state = "recording";
+      lastPageViewUrl = "";
+      pendingScroll = null;
+      schedulePageView();
+      respond({ ok: true });
+      return;
     }
-    if (message.type === "SET_STATE") { receivedExplicitState = true; options = { ...options, ...message.recording }; const wasRecording = state === "recording"; if (["idle", "finished"].includes(state) && message.state === "recording") lastPageViewUrl = ""; state = message.state; if (state !== "recording") { pendingScroll = null; clearTimeout(scrollTimer); } if (!wasRecording && state === "recording") schedulePageView(); }
-    if (message.type === "FLUSH_PENDING") { flushAll().then(() => { pendingScroll = null; respond({ ok: true }); }); return true; }
+    if (message.type === "SET_STATE") {
+      receivedExplicitState = true;
+      options = { ...options, ...message.recording };
+      const wasRecording = state === "recording";
+      if (["idle", "finished"].includes(state) && message.state === "recording")
+        lastPageViewUrl = "";
+      state = message.state;
+      if (state !== "recording") {
+        pendingScroll = null;
+        clearTimeout(scrollTimer);
+      }
+      if (!wasRecording && state === "recording") schedulePageView();
+    }
+    if (message.type === "FLUSH_PENDING") {
+      flushAll().then(() => {
+        pendingScroll = null;
+        respond({ ok: true });
+      });
+      return true;
+    }
     if (message.type === "GET_CAPTURE_CONTEXT") {
       const info = pageInfo();
       info.markerRects = {};
-      for (const selector of (message.selectors || []).slice(0,100)) {
+      for (const selector of (message.selectors || []).slice(0, 100)) {
         try {
-          const element = document.querySelector(selector), rect = element?.getBoundingClientRect();
+          const element = document.querySelector(selector),
+            rect = element?.getBoundingClientRect();
           const style = element && getComputedStyle(element);
-          info.markerRects[selector] = rect && rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0 && rect.top < innerHeight && rect.left < innerWidth && style.visibility !== "hidden" && style.display !== "none" && style.opacity !== "0" ? {x:rect.x,y:rect.y,width:rect.width,height:rect.height} : null;
-        } catch { info.markerRects[selector] = null; }
+          info.markerRects[selector] =
+            rect &&
+            rect.width > 0 &&
+            rect.height > 0 &&
+            rect.bottom > 0 &&
+            rect.right > 0 &&
+            rect.top < innerHeight &&
+            rect.left < innerWidth &&
+            style.visibility !== "hidden" &&
+            style.display !== "none" &&
+            style.opacity !== "0"
+              ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+              : null;
+        } catch {
+          info.markerRects[selector] = null;
+        }
       }
-      if (message.selector) { try { const rect = document.querySelector(message.selector)?.getBoundingClientRect(); info.rect = rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null; } catch { info.rect = null; } }
+      if (message.selector) {
+        try {
+          const rect = document.querySelector(message.selector)?.getBoundingClientRect();
+          info.rect = rect
+            ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+            : null;
+        } catch {
+          info.rect = null;
+        }
+      }
       respond(info);
     }
-    if (message.type === "OBSERVE_NEXT") { observeNext = true; state = "recording"; }
+    if (message.type === "OBSERVE_NEXT") {
+      observeNext = true;
+      state = "recording";
+    }
     if (message.type === "GET_PAGE") respond(pageInfo());
-    if (message.type === "CAPTURE_SELECTION") { captureSelection().then(respond); return true; }
+    if (message.type === "CAPTURE_SELECTION") {
+      captureSelection().then(respond);
+      return true;
+    }
   });
 
-  chrome.runtime.sendMessage({ type: "GET_STATE" }).then((response) => {
-    if (receivedExplicitState) return;
-    state = response?.state || "idle";
-    options = { ...options, ...response?.recording };
-    if (state === "recording") schedulePageView();
-  }).catch(() => {});
+  chrome.runtime
+    .sendMessage({ type: "GET_STATE" })
+    .then((response) => {
+      if (receivedExplicitState) return;
+      state = response?.state || "idle";
+      options = { ...options, ...response?.recording };
+      if (state === "recording") schedulePageView();
+    })
+    .catch(() => {});
 })();

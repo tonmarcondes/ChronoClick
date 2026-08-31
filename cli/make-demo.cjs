@@ -24,24 +24,55 @@ fs.mkdirSync(demoDir, { recursive: true });
   const rects = [
     { x: 110, y: 5, width: 320, height: 48, name: "Line Technician To Do List", role: "heading" },
     { x: 20, y: 137, width: 137, height: 43, name: "Fleet List", role: "tab" },
-    { x: 510, y: 390, width: 340, height: 45, name: "WP-LM-PT-TPA02MAR2024", role: "link" }
+    { x: 510, y: 390, width: 340, height: 45, name: "WP-LM-PT-TPA02MAR2024", role: "link" },
   ];
   const steps = [];
   for (let i = 0; i < rects.length; i++) {
     const r = rects[i];
     const micro = `step-${i + 1}-micro.jpg`;
-    await sharp(screenshotPath).extract({ left: Math.max(0, r.x - 12), top: Math.max(0, r.y - 8), width: Math.min(1288 - Math.max(0, r.x - 12), r.width + 24), height: Math.min(520 - Math.max(0, r.y - 8), r.height + 16) }).jpeg({ quality: 92 }).toFile(path.join(demoDir, micro));
+    await sharp(screenshotPath)
+      .extract({
+        left: Math.max(0, r.x - 12),
+        top: Math.max(0, r.y - 8),
+        width: Math.min(1288 - Math.max(0, r.x - 12), r.width + 24),
+        height: Math.min(520 - Math.max(0, r.y - 8), r.height + 16),
+      })
+      .jpeg({ quality: 92 })
+      .toFile(path.join(demoDir, micro));
     steps.push({
-      id: `demo-step-${i + 1}`, sequence: i + 1, groupId: "screen-001", timestamp: new Date(Date.now() + i * 1000).toISOString(),
-      action: i === 0 ? "observation" : "click", description: "",
-      component: { name: r.name, role: r.role, tagName: i === 0 ? "h1" : "a", selector: `.demo-${i + 1}` },
-      rect: { x: r.x, y: r.y, width: r.width, height: r.height }, click: { x: r.x + r.width / 2, y: r.y + r.height / 2, button: 0 },
-      page: { pageName: "Encontrando um Cartão de Tarefas", browserTitle: "Line Technician To Do List", heading: "", url: "https://exemplo.local/tasks", viewportWidth: 1288, viewportHeight: 520, scrollX: 0, scrollY: 0, devicePixelRatio: 1 },
-      images: { screen: "reference-screen.jpg", microprint: micro }
+      id: `demo-step-${i + 1}`,
+      sequence: i + 1,
+      groupId: "screen-001",
+      timestamp: new Date(Date.now() + i * 1000).toISOString(),
+      action: i === 0 ? "observation" : "click",
+      description: "",
+      component: {
+        name: r.name,
+        role: r.role,
+        tagName: i === 0 ? "h1" : "a",
+        selector: `.demo-${i + 1}`,
+      },
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+      click: { x: r.x + r.width / 2, y: r.y + r.height / 2, button: 0 },
+      page: {
+        pageName: "Encontrando um Cartão de Tarefas",
+        browserTitle: "Line Technician To Do List",
+        heading: "",
+        url: "https://exemplo.local/tasks",
+        viewportWidth: 1288,
+        viewportHeight: 520,
+        scrollX: 0,
+        scrollY: 0,
+        devicePixelRatio: 1,
+      },
+      images: { screen: "reference-screen.jpg", microprint: micro },
     });
   }
   const session = {
-    schemaVersion: 1, id: "demo", createdAt: new Date().toISOString(), finishedAt: new Date().toISOString(),
+    schemaVersion: 1,
+    id: "demo",
+    createdAt: new Date().toISOString(),
+    finishedAt: new Date().toISOString(),
     config: {
       documentTitle: "Procedimento Operacional",
       sectionTitlePattern: "{sectionNumber}. {pageName}",
@@ -50,15 +81,54 @@ fs.mkdirSync(demoDir, { recursive: true });
       groupWindowMs: 12000,
       columns: [
         { key: "step", title: "STEP", source: ["sequence"], width: 12 },
-        { key: "description", title: "DESCRIÇÃO", source: ["auto-description", "microprint"], width: 88 }
+        {
+          key: "description",
+          title: "DESCRIÇÃO",
+          source: ["auto-description", "microprint"],
+          width: 88,
+        },
       ],
-      actionTexts: { "click-button": "Clique no botão {name}.", "click-link": "Clique no link {name}.", click: "Clique em {name}.", observation: "Observe {name}.", generic: "Interaja com {name}." },
-      microprint: { heightPt: 11, maxWidthPt: 90 }, markers: { sizePt: 18 },
-      theme: { fontFamily: "Aptos", bodyFontSize: 11, headingColor: "111827", tableHeaderBackground: "285589", tableHeaderColor: "FFFFFF", tableBorderColor: "111111", markerBackground: "000000", markerColor: "FFFFFF", componentBold: true, componentColor: "111827", titleBefore: 0, titleAfter: 18, screenBefore: 6, screenAfter: 12, tableBefore: 8, tableAfter: 18 }
+      actionTexts: {
+        "click-button": "Clique no botão {name}.",
+        "click-link": "Clique no link {name}.",
+        click: "Clique em {name}.",
+        observation: "Observe {name}.",
+        generic: "Interaja com {name}.",
+      },
+      microprint: { heightPt: 11, maxWidthPt: 90 },
+      markers: { sizePt: 18 },
+      theme: {
+        fontFamily: "Aptos",
+        bodyFontSize: 11,
+        headingColor: "111827",
+        tableHeaderBackground: "285589",
+        tableHeaderColor: "FFFFFF",
+        tableBorderColor: "111111",
+        markerBackground: "000000",
+        markerColor: "FFFFFF",
+        componentBold: true,
+        componentColor: "111827",
+        titleBefore: 0,
+        titleAfter: 18,
+        screenBefore: 6,
+        screenAfter: 12,
+        tableBefore: 8,
+        tableAfter: 18,
+      },
     },
     steps,
-    groups: [{ id: "screen-001", page: steps[0].page, screenshot: "reference-screen.jpg", stepIds: steps.map((step) => step.id) }]
+    groups: [
+      {
+        id: "screen-001",
+        page: steps[0].page,
+        screenshot: "reference-screen.jpg",
+        stepIds: steps.map((step) => step.id),
+      },
+    ],
   };
   fs.writeFileSync(path.join(demoDir, "demo-session.json"), JSON.stringify(session, null, 2));
   console.log("Sessão de demonstração criada.");
-})().catch((error) => { console.error(error); process.exit(1); });
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

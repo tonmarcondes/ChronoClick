@@ -1,96 +1,222 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const path = require('node:path');
-const crypto = require('node:crypto');
-const root = path.resolve(__dirname, '..');
-const context = vm.createContext({ console, crypto, URL, setTimeout, clearTimeout,
-  chrome: { runtime: { onMessage: { addListener() {} } }, storage: { local: { set: async () => {} } },
-    tabs: { query: async () => [{id:1}], sendMessage: async () => ({url:'https://test/a',documentToken:'doc',scrollY:0}), captureVisibleTab: async () => 'screen-A' } } });
-vm.runInContext(fs.readFileSync(path.join(root, 'extension/recording-policy.js'), 'utf8'), context);
-vm.runInContext(fs.readFileSync(path.join(root, 'extension/background.js'), 'utf8').replace('import "./recording-policy.js";', ''), context);
-vm.runInContext(`
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const path = require("node:path");
+const crypto = require("node:crypto");
+const root = path.resolve(__dirname, "..");
+const context = vm.createContext({
+  console,
+  crypto,
+  URL,
+  setTimeout,
+  clearTimeout,
+  chrome: {
+    runtime: { onMessage: { addListener() {} } },
+    storage: { local: { set: async () => {} } },
+    tabs: {
+      query: async () => [{ id: 1 }],
+      sendMessage: async () => ({ url: "https://test/a", documentToken: "doc", scrollY: 0 }),
+      captureVisibleTab: async () => "screen-A",
+    },
+  },
+});
+vm.runInContext(fs.readFileSync(path.join(root, "extension/recording-policy.js"), "utf8"), context);
+vm.runInContext(fs.readFileSync(path.join(root, "extension/default-config.js"), "utf8"), context);
+vm.runInContext(
+  fs.readFileSync(path.join(root, "extension/background.js"), "utf8").replace(/^import .*;$/gm, ""),
+  context,
+);
+vm.runInContext(
+  `
   globalThis.api = { policy: ChronoPolicy, captureVisible, addEvent, migrateConfig, getSession: () => session };
   project = {root:'/tmp/test'}; recorderState = 'recording';
   session = {config:migrateConfig({configVersion:5}),steps:[],groups:[]};
   native = async () => ({ok:true});
   nativeSaveEvent = async ({step}) => ({step:{images:{screen:'screenshots/'+step.id+'.png',microprint:step.noMicroprint?null:'components/'+step.id+'.png'}}});
   saveState = async () => {};
-`, context);
-const {policy, addEvent, captureVisible, getSession} = context.api;
-const event = (action='click', selector='#button') => ({action,component:{selector,role:'button',name:'Salvar'},page:{url:'https://test/a',pageName:'Teste',documentToken:'doc',scrollY:0},timestamp:new Date().toISOString()});
-const media = {screenDataUrl:'data:image/png;base64,AA',microDataUrl:null,signature:[1]};
+`,
+  context,
+);
+const { policy, addEvent, captureVisible, getSession } = context.api;
+const event = (action = "click", selector = "#button") => ({
+  action,
+  component: { selector, role: "button", name: "Salvar" },
+  page: { url: "https://test/a", pageName: "Teste", documentToken: "doc", scrollY: 0 },
+  timestamp: new Date().toISOString(),
+});
+const media = { screenDataUrl: "data:image/png;base64,AA", microDataUrl: null, signature: [1] };
 (async () => {
-  assert.equal(policy.defaults.scrollMode,'with-interaction');
-  const {latestPageGroups}=require('../cli/page-groups.cjs');
-  const latestSession={config:{recording:{separateScreens:false}},steps:[
-    {id:'a',page:{url:'https://test/a'},images:{screen:'first.png'}},
-    {id:'b',page:{url:'https://test/a',scrollY:600},images:{screen:'last.png'}},
-    {id:'c',page:{url:'https://test/b'},images:{screen:'next.png'}},
-    {id:'d',page:{url:'https://test/a'},images:{screen:'return.png'}}]};
-  const pageGroups=latestPageGroups(latestSession);
-  assert.equal(pageGroups.length,3);assert.equal(pageGroups[0].screenshot,'last.png');
-  assert.deepEqual(pageGroups[0].stepIds,['a','b']);
-  assert.equal(latestSession.steps[0].images.screen,'first.png');
-  assert.equal(policy.linkAppearance({menu:true}),'menu');
-  assert.equal(policy.linkAppearance({classes:'btn btn-primary'}),'button');
-  assert.equal(policy.linkAppearance({padding:8,background:'rgb(20, 30, 40)',border:0}),'button');
-  assert.equal(policy.linkAppearance({padding:8,background:'rgba(0, 0, 0, 0)',border:0}),'link');
-  assert.equal(policy.actionKey({action:'click',component:{role:'link',appearance:'menu'}}),'click-menu');
-  assert.equal(policy.actionKey({action:'click',component:{role:'link',appearance:'button'}}),'click-styled-button');
-  assert.equal(policy.actionValue({action:'click',component:{name:'Salvar'}}),'Salvar');
-  assert.equal(policy.actionValue({action:'typing',value:''}),'');
-  const grouped = {page:{url:'https://test/form',scrollY:0},signature:[10,20],lastTimestamp:'2026-01-01T00:00:00Z'};
-  const next = {action:'click',page:{url:'https://test/form',scrollY:0},timestamp:'2026-01-01T00:10:00Z'};
-  assert.equal(policy.canGroup(grouped,next,[11,21],{recording:{},groupWindowMs:0}),true);
-  assert.equal(policy.canGroup(grouped,{...next,page:{...next.page,scrollY:300}},[11,21],{}),false);
-  assert.equal(policy.canGroup(grouped,{...next,page:{url:'https://test/other'}},[11,21],{}),false);
-  assert.equal(policy.canGroup(grouped,next,[200,220],{}),false);
-  assert.equal(policy.canGroup(grouped,next,[11,21],{recording:{separateScreens:true}}),false);
-  assert.equal(policy.documentTitle({steps:[{page:{pageName:'Cadastro',url:'https://test/form'}}]},'Manual — {pageName} ({url})'),'Manual — Cadastro (https://test/form)');
-  const navigation = {initialUrl:'https://test/start',config:{recording:{}},steps:[]};
-  const pageView = url => ({action:'page-view',page:{url}});
-  assert.equal(policy.skipPageView(navigation,pageView('https://test/start')),false);
-  navigation.steps.push(pageView('https://test/start'));
-  for(const url of ['https://test/other','https://test/start?q=2#tab']) assert.equal(policy.skipPageView(navigation,pageView(url)),true);
-  for(const url of ['https://other/start','http://test/start','https://test:8443/start']) assert.equal(policy.skipPageView(navigation,pageView(url)),false);
-  assert.equal(policy.skipPageView(navigation,{action:'click',page:{url:'https://test/other'}}),false);
-  navigation.config.recording.skipInitialOriginPages=false;
-  assert.equal(policy.skipPageView(navigation,pageView('https://test/other')),false);
-  navigation.config.recording.skipInitialOriginPages=true;
-  navigation.steps.push(pageView('https://second.test/login'));
-  assert.equal(policy.skipPageView(navigation,pageView('https://second.test/dashboard?x=1')),true);
-  const placeMarkers=require('../cli/marker-layout.cjs');
-  const markers=placeMarkers([{sequence:1,leftPt:-5,topPt:-5},{sequence:2,leftPt:-5,topPt:-5},{sequence:3,leftPt:195,topPt:195}],{left:0,width:200,height:200,size:18});
-  assert.notDeepEqual([markers[0].leftPt,markers[0].topPt],[markers[1].leftPt,markers[1].topPt]);
-  for(const m of markers) assert.ok(m.leftPt>=0&&m.topPt>=0&&m.leftPt<=182&&m.topPt<=182);
-  assert.equal(policy.typedValue({matches:()=>true,closest:()=>null,value:'secret'}, {captureText:true}), '[REDACTED]');
-  assert.equal(policy.typedValue({matches:()=>false,closest:()=>null,value:'João\nSilva'}, {captureText:true}), 'João\nSilva');
-  assert.equal(policy.typedValue({matches:()=>false,closest:()=>null,value:'secret'}, {captureText:false}), '[NOT_CAPTURED]');
-  await addEvent(event(),media); const first = getSession().steps[0].id;
-  await addEvent(event(),media);
-  assert.equal(getSession().steps.length,1); assert.notEqual(getSession().steps[0].id,first);
-  assert.equal(getSession().groups.length,1);
-  await addEvent(event('click','#other'),media); await addEvent(event(),media);
-  assert.equal(getSession().steps.length,3); // nonconsecutive repetition is meaningful
-  getSession().config.recording.repeatMode='page'; await addEvent(event(),media);
-  assert.equal(getSession().steps.length,2);
-  getSession().config.recording.repeatMode='off'; await addEvent(event(),media);
-  assert.equal(getSession().steps.length,3);
-  getSession().config.recording.repeatMode='consecutive';
-  await addEvent({...event('typing','#name'),value:'Maria'},media);
-  await addEvent({...event('typing','#name'),value:'Maria Silva'},media);
-  assert.equal(getSession().steps.filter(s=>s.action==='typing').length,1);
-  assert.equal(getSession().steps.at(-1).value,'Maria Silva');
-  await addEvent({...event('click','#continue'),pendingScroll:{scrollY:900,selector:'body'}},media);
-  assert.equal(getSession().steps.at(-2).action,'scroll'); assert.equal(getSession().steps.at(-2).scrollY,900);
-  assert.equal(getSession().steps.at(-1).action,'click');
-  getSession().steps.forEach((s,i)=>assert.equal(s.sequence,i+1));
-  assert.equal(new Set(getSession().steps.map(s=>s.images.screen)).size,getSession().steps.length);
-  assert.equal(await captureVisible({tab:{id:1,windowId:1}},event()),'screen-A');
-  await assert.rejects(captureVisible({tab:{id:2,windowId:1}},event()),/aba de origem/);
-  assert.throws(()=>policy.validate(event().page,{url:'https://test/b'}),/página mudou/);
-  assert.throws(()=>policy.validate(event().page,{url:'https://test/a',documentToken:'doc',scrollY:100}),/posição/);
-  assert.equal(context.api.migrateConfig({configVersion:5,actionTexts:{typing:'Preencha o campo {name}.'}}).actionTexts.typing,'Insira o texto {value} no campo {name}.');
-  console.log('PASS: 17 verificações — consolidação, scroll associado, valores, privacidade, prints únicos, aba/URL/posição e migração.');
-})().catch(error=>{console.error(error);process.exitCode=1;});
+  assert.equal(policy.defaults.scrollMode, "with-interaction");
+  const { latestPageGroups } = require("../cli/page-groups.cjs");
+  const latestSession = {
+    config: { recording: { separateScreens: false } },
+    steps: [
+      { id: "a", page: { url: "https://test/a" }, images: { screen: "first.png" } },
+      { id: "b", page: { url: "https://test/a", scrollY: 600 }, images: { screen: "last.png" } },
+      { id: "c", page: { url: "https://test/b" }, images: { screen: "next.png" } },
+      { id: "d", page: { url: "https://test/a" }, images: { screen: "return.png" } },
+    ],
+  };
+  const pageGroups = latestPageGroups(latestSession);
+  assert.equal(pageGroups.length, 3);
+  assert.equal(pageGroups[0].screenshot, "last.png");
+  assert.deepEqual(pageGroups[0].stepIds, ["a", "b"]);
+  assert.equal(latestSession.steps[0].images.screen, "first.png");
+  assert.equal(policy.linkAppearance({ menu: true }), "menu");
+  assert.equal(policy.linkAppearance({ classes: "btn btn-primary" }), "button");
+  assert.equal(
+    policy.linkAppearance({ padding: 8, background: "rgb(20, 30, 40)", border: 0 }),
+    "button",
+  );
+  assert.equal(
+    policy.linkAppearance({ padding: 8, background: "rgba(0, 0, 0, 0)", border: 0 }),
+    "link",
+  );
+  assert.equal(
+    policy.actionKey({ action: "click", component: { role: "link", appearance: "menu" } }),
+    "click-menu",
+  );
+  assert.equal(
+    policy.actionKey({ action: "click", component: { role: "link", appearance: "button" } }),
+    "click-styled-button",
+  );
+  assert.equal(policy.actionValue({ action: "click", component: { name: "Salvar" } }), "Salvar");
+  assert.equal(policy.actionValue({ action: "typing", value: "" }), "");
+  const grouped = {
+    page: { url: "https://test/form", scrollY: 0 },
+    signature: [10, 20],
+    lastTimestamp: "2026-01-01T00:00:00Z",
+  };
+  const next = {
+    action: "click",
+    page: { url: "https://test/form", scrollY: 0 },
+    timestamp: "2026-01-01T00:10:00Z",
+  };
+  assert.equal(policy.canGroup(grouped, next, [11, 21], { recording: {}, groupWindowMs: 0 }), true);
+  assert.equal(
+    policy.canGroup(grouped, { ...next, page: { ...next.page, scrollY: 300 } }, [11, 21], {}),
+    false,
+  );
+  assert.equal(
+    policy.canGroup(grouped, { ...next, page: { url: "https://test/other" } }, [11, 21], {}),
+    false,
+  );
+  assert.equal(policy.canGroup(grouped, next, [200, 220], {}), false);
+  assert.equal(
+    policy.canGroup(grouped, next, [11, 21], { recording: { separateScreens: true } }),
+    false,
+  );
+  assert.equal(
+    policy.documentTitle(
+      { steps: [{ page: { pageName: "Cadastro", url: "https://test/form" } }] },
+      "Manual — {pageName} ({url})",
+    ),
+    "Manual — Cadastro (https://test/form)",
+  );
+  const navigation = { initialUrl: "https://test/start", config: { recording: {} }, steps: [] };
+  const pageView = (url) => ({ action: "page-view", page: { url } });
+  assert.equal(policy.skipPageView(navigation, pageView("https://test/start")), false);
+  navigation.steps.push(pageView("https://test/start"));
+  for (const url of ["https://test/other", "https://test/start?q=2#tab"])
+    assert.equal(policy.skipPageView(navigation, pageView(url)), true);
+  for (const url of ["https://other/start", "http://test/start", "https://test:8443/start"])
+    assert.equal(policy.skipPageView(navigation, pageView(url)), false);
+  assert.equal(
+    policy.skipPageView(navigation, { action: "click", page: { url: "https://test/other" } }),
+    false,
+  );
+  navigation.config.recording.skipInitialOriginPages = false;
+  assert.equal(policy.skipPageView(navigation, pageView("https://test/other")), false);
+  navigation.config.recording.skipInitialOriginPages = true;
+  navigation.steps.push(pageView("https://second.test/login"));
+  assert.equal(
+    policy.skipPageView(navigation, pageView("https://second.test/dashboard?x=1")),
+    true,
+  );
+  const placeMarkers = require("../cli/marker-layout.cjs");
+  const markers = placeMarkers(
+    [
+      { sequence: 1, leftPt: -5, topPt: -5 },
+      { sequence: 2, leftPt: -5, topPt: -5 },
+      { sequence: 3, leftPt: 195, topPt: 195 },
+    ],
+    { left: 0, width: 200, height: 200, size: 18 },
+  );
+  assert.notDeepEqual([markers[0].leftPt, markers[0].topPt], [markers[1].leftPt, markers[1].topPt]);
+  for (const m of markers)
+    assert.ok(m.leftPt >= 0 && m.topPt >= 0 && m.leftPt <= 182 && m.topPt <= 182);
+  assert.equal(
+    policy.typedValue(
+      { matches: () => true, closest: () => null, value: "secret" },
+      { captureText: true },
+    ),
+    "[REDACTED]",
+  );
+  assert.equal(
+    policy.typedValue(
+      { matches: () => false, closest: () => null, value: "João\nSilva" },
+      { captureText: true },
+    ),
+    "João\nSilva",
+  );
+  assert.equal(
+    policy.typedValue(
+      { matches: () => false, closest: () => null, value: "secret" },
+      { captureText: false },
+    ),
+    "[NOT_CAPTURED]",
+  );
+  await addEvent(event(), media);
+  const first = getSession().steps[0].id;
+  await addEvent(event(), media);
+  assert.equal(getSession().steps.length, 1);
+  assert.notEqual(getSession().steps[0].id, first);
+  assert.equal(getSession().groups.length, 1);
+  await addEvent(event("click", "#other"), media);
+  await addEvent(event(), media);
+  assert.equal(getSession().steps.length, 3); // nonconsecutive repetition is meaningful
+  getSession().config.recording.repeatMode = "page";
+  await addEvent(event(), media);
+  assert.equal(getSession().steps.length, 2);
+  getSession().config.recording.repeatMode = "off";
+  await addEvent(event(), media);
+  assert.equal(getSession().steps.length, 3);
+  getSession().config.recording.repeatMode = "consecutive";
+  await addEvent({ ...event("typing", "#name"), value: "Maria" }, media);
+  await addEvent({ ...event("typing", "#name"), value: "Maria Silva" }, media);
+  assert.equal(getSession().steps.filter((s) => s.action === "typing").length, 1);
+  assert.equal(getSession().steps.at(-1).value, "Maria Silva");
+  await addEvent(
+    { ...event("click", "#continue"), pendingScroll: { scrollY: 900, selector: "body" } },
+    media,
+  );
+  assert.equal(getSession().steps.at(-2).action, "scroll");
+  assert.equal(getSession().steps.at(-2).scrollY, 900);
+  assert.equal(getSession().steps.at(-1).action, "click");
+  getSession().steps.forEach((s, i) => assert.equal(s.sequence, i + 1));
+  assert.equal(
+    new Set(getSession().steps.map((s) => s.images.screen)).size,
+    getSession().steps.length,
+  );
+  assert.equal(await captureVisible({ tab: { id: 1, windowId: 1 } }, event()), "screen-A");
+  await assert.rejects(captureVisible({ tab: { id: 2, windowId: 1 } }, event()), /aba de origem/);
+  assert.throws(() => policy.validate(event().page, { url: "https://test/b" }), /página mudou/);
+  assert.throws(
+    () =>
+      policy.validate(event().page, { url: "https://test/a", documentToken: "doc", scrollY: 100 }),
+    /posição/,
+  );
+  assert.equal(
+    context.api.migrateConfig({
+      configVersion: 5,
+      actionTexts: { typing: "Preencha o campo {name}." },
+    }).actionTexts.typing,
+    "Insira o texto {value} no campo {name}.",
+  );
+  console.log(
+    "PASS: 17 verificações — consolidação, scroll associado, valores, privacidade, prints únicos, aba/URL/posição e migração.",
+  );
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

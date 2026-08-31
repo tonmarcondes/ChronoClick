@@ -1,17 +1,26 @@
 {
   "name": "chronoclick-recorder",
-  "version": "0.8.8",
+  "version": "0.9.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "private": true,
   "description": "Extensão Chromium e gerador DOCX para procedimentos gravados.",
   "scripts": {
+    "format": "prettier --write \"{extension,cli,native-host,tests}/**/*.{js,cjs,html,css}\" package.json",
+    "format:check": "prettier --check \"{extension,cli,native-host,tests}/**/*.{js,cjs,html,css}\" package.json",
     "test": "node tests/recording.test.cjs && node tests/export-ui.test.cjs && node tests/start-session.test.cjs",
     "test:integration": "node native-host/smoke-test.cjs",
+    "test:ui": "node tests/ui-server.cjs",
     "generate": "node cli/generate-docx.cjs",
     "demo": "node cli/make-demo.cjs && node cli/generate-docx.cjs demo/demo-session.json demo/chronoclick-demo.docx"
   },
   "dependencies": {
     "docx": "^9.5.1",
     "jszip": "^3.10.1",
-    "sharp": "^0.34.3"
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
   }
 }

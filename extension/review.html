@@ -1,130 +1,371 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="ui.css"><title>Revisão — ChronoClick</title>
-</head>
-<body><main class="review">
-  <header><div><h1>Revisão e configuração</h1><p class="muted">Edite nomes, descrições, colunas e tema antes de exportar.</p></div>
-    <div><button id="save" class="primary">Salvar alterações</button> <button id="generate">Gerar DOCX</button></div></header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="ui.css" />
+    <title>Revisão — ChronoClick</title>
+  </head>
+  <body>
+    <main class="review">
+      <header>
+        <div>
+          <h1>Revisão e configuração</h1>
+          <p class="muted">Edite nomes, descrições, colunas e tema antes de exportar.</p>
+        </div>
+        <div>
+          <button id="save" class="primary">Salvar alterações</button>
+          <button id="generate">Gerar DOCX</button>
+        </div>
+      </header>
 
-  <section class="card"><details id="variables"><summary>Variáveis disponíveis — clique para consultar</summary>
-    <p>Copie os nomes exatamente como aparecem, incluindo as chaves. Cada grupo informa onde as variáveis são interpretadas; nos demais campos, elas são texto literal.</p>
-    <h3>Textos automáticos das ações</h3>
-    <dl>
-      <dt><code>{name}</code></dt><dd>Nome do componente (botão, link, campo etc.).</dd>
-      <dt><code>{value}</code></dt><dd>Valor digitado ou selecionado. Senhas são substituídas por [REDACTED].</dd>
-      <dt><code>{texto-iluminado}</code> ou <code>{highlighted-text}</code></dt><dd>Texto selecionado na página.</dd>
-      <dt><code>{pageName}</code></dt><dd>Nome da página, normalmente o título principal ou título da aba.</dd>
-      <dt><code>{url}</code></dt><dd>URL da página. Exemplo: Insira a url {url} e acesse a página {pageName}.</dd>
-      <dt><code>{scrollX}</code> / <code>{scrollY}</code></dt><dd>Posição horizontal / vertical da rolagem, em pixels.</dd>
-    </dl>
-    <h3>Título do documento</h3>
-    <p>Use <code>{pageName}</code> e <code>{url}</code> para a primeira página gravada. As variáveis da ação, como <code>{name}</code> e <code>{value}</code>, usam o primeiro passo. Os contadores <code>{sectionNumber}</code>, <code>{screenNumber}</code> e <code>{tableNumber}</code> valem 1 no título geral. Exemplo: <code>Manual — {pageName}</code>.</p>
-    <h3>Título da seção e legendas de print/tabela</h3>
-    <p><code>{sectionNumber}</code>: número da seção; <code>{screenNumber}</code>: número do print; <code>{tableNumber}</code>: número da tabela; <code>{pageName}</code>: nome da página.</p>
-    <h3>Pasta raiz — variáveis de ambiente</h3>
-    <p><code>~</code>: pasta do usuário. <code>$HOME</code>, <code>${HOME}</code> ou <code>%HOME%</code>: variável HOME. Outras variáveis seguem <code>$VAR</code>, <code>${VAR}</code> ou <code>%VAR%</code> e precisam existir no ambiente do host local.</p>
-    <h3>Fontes de conteúdo das colunas</h3>
-    <p><code>sequence</code> (numeração), <code>auto-description</code> (frase automática), <code>component-name</code>, <code>microprint</code>, <code>action</code>, <code>editable</code> (descrição manual), <code>url</code>, <code>page-title</code>, <code>timestamp</code>, <code>value</code>, <code>fixed-text:Seu texto</code>. Combine fontes separando por vírgulas.</p>
-    <h3>Variáveis CSS do arquivo theme.css</h3>
-    <p><code>--chrono-font-family</code>, <code>--chrono-body-font-size</code>, <code>--chrono-heading-color</code>, <code>--chrono-table-header-background</code>, <code>--chrono-table-header-color</code>, <code>--chrono-table-border-color</code>, <code>--chrono-marker-background</code>, <code>--chrono-marker-color</code>, <code>--chrono-marker-size</code>, <code>--chrono-component-bold</code>, <code>--chrono-component-color</code>, <code>--chrono-link-color</code>, <code>--chrono-microprint-height</code>, <code>--chrono-microprint-max-width</code>, <code>--chrono-title-before</code>, <code>--chrono-title-after</code>, <code>--chrono-screen-before</code>, <code>--chrono-screen-after</code>, <code>--chrono-table-before</code>, <code>--chrono-table-after</code>.</p>
-    <p>Exemplo: <code>Insira o texto {value} no campo {name}.</code></p>
-  </details></section>
+      <section class="card">
+        <details id="variables">
+          <summary>Variáveis disponíveis — clique para consultar</summary>
+          <p>
+            Copie os nomes exatamente como aparecem, incluindo as chaves. Cada grupo informa onde as
+            variáveis são interpretadas; nos demais campos, elas são texto literal.
+          </p>
+          <h3>Textos automáticos das ações</h3>
+          <dl>
+            <dt><code>{name}</code></dt>
+            <dd>Nome do componente (botão, link, campo etc.).</dd>
+            <dt><code>{value}</code></dt>
+            <dd>Valor digitado ou selecionado. Senhas são substituídas por [REDACTED].</dd>
+            <dt><code>{texto-iluminado}</code> ou <code>{highlighted-text}</code></dt>
+            <dd>Texto selecionado na página.</dd>
+            <dt><code>{pageName}</code></dt>
+            <dd>Nome da página, normalmente o título principal ou título da aba.</dd>
+            <dt><code>{url}</code></dt>
+            <dd>URL da página. Exemplo: Insira a url {url} e acesse a página {pageName}.</dd>
+            <dt><code>{scrollX}</code> / <code>{scrollY}</code></dt>
+            <dd>Posição horizontal / vertical da rolagem, em pixels.</dd>
+          </dl>
+          <h3>Título do documento</h3>
+          <p>
+            Use <code>{pageName}</code> e <code>{url}</code> para a primeira página gravada. As
+            variáveis da ação, como <code>{name}</code> e <code>{value}</code>, usam o primeiro
+            passo. Os contadores <code>{sectionNumber}</code>, <code>{screenNumber}</code> e
+            <code>{tableNumber}</code> valem 1 no título geral. Exemplo:
+            <code>Manual — {pageName}</code>.
+          </p>
+          <h3>Título da seção e legendas de print/tabela</h3>
+          <p>
+            <code>{sectionNumber}</code>: número da seção; <code>{screenNumber}</code>: número do
+            print; <code>{tableNumber}</code>: número da tabela; <code>{pageName}</code>: nome da
+            página.
+          </p>
+          <h3>Pasta raiz — variáveis de ambiente</h3>
+          <p>
+            <code>~</code>: pasta do usuário. <code>$HOME</code>, <code>${HOME}</code> ou
+            <code>%HOME%</code>: variável HOME. Outras variáveis seguem <code>$VAR</code>,
+            <code>${VAR}</code> ou <code>%VAR%</code> e precisam existir no ambiente do host local.
+          </p>
+          <h3>Fontes de conteúdo das colunas</h3>
+          <p>
+            <code>sequence</code> (numeração), <code>auto-description</code> (frase automática),
+            <code>component-name</code>, <code>microprint</code>, <code>action</code>,
+            <code>editable</code> (descrição manual), <code>url</code>, <code>page-title</code>,
+            <code>timestamp</code>, <code>value</code>, <code>fixed-text:Seu texto</code>. Combine
+            fontes separando por vírgulas.
+          </p>
+          <h3>Variáveis CSS do arquivo theme.css</h3>
+          <p>
+            <code>--chrono-font-family</code>, <code>--chrono-body-font-size</code>,
+            <code>--chrono-heading-color</code>, <code>--chrono-table-header-background</code>,
+            <code>--chrono-table-header-color</code>, <code>--chrono-table-border-color</code>,
+            <code>--chrono-marker-background</code>, <code>--chrono-marker-color</code>,
+            <code>--chrono-marker-size</code>, <code>--chrono-component-bold</code>,
+            <code>--chrono-component-color</code>, <code>--chrono-link-color</code>,
+            <code>--chrono-microprint-height</code>, <code>--chrono-microprint-max-width</code>,
+            <code>--chrono-title-before</code>, <code>--chrono-title-after</code>,
+            <code>--chrono-screen-before</code>, <code>--chrono-screen-after</code>,
+            <code>--chrono-table-before</code>, <code>--chrono-table-after</code>.
+          </p>
+          <p>Exemplo: <code>Insira o texto {value} no campo {name}.</code></p>
+        </details>
+      </section>
 
-  <section class="card"><h2>Documento</h2><div class="grid">
-    <label class="field">Título do documento<input id="documentTitle"></label>
-    <label class="field">Título da seção<input id="sectionTitlePattern"></label>
-    <label class="field">Legenda do print<input id="screenshotCaptionPattern"></label>
-    <label class="field">Legenda da tabela<input id="tableCaptionPattern"></label>
-    <label><input id="showScreenshotCaption" type="checkbox"> Mostrar legenda das imagens</label>
-    <label><input id="showTableCaption" type="checkbox"> Mostrar legenda das tabelas</label>
-    <label class="field">Intervalo máximo entre passos agrupados (segundos; 0 = sem limite)<input id="groupWindow" type="number" min="0"></label>
-    <label class="field">Pasta raiz para novos projetos<input id="projectRoot" placeholder="${HOME}/sistemas/cronoPrint"></label>
-  </div></section>
+      <section class="card">
+        <h2>Documento</h2>
+        <div class="grid">
+          <label class="field">Título do documento<input id="documentTitle" /></label>
+          <label class="field">Título da seção<input id="sectionTitlePattern" /></label>
+          <label class="field">Legenda do print<input id="screenshotCaptionPattern" /></label>
+          <label class="field">Legenda da tabela<input id="tableCaptionPattern" /></label>
+          <label
+            ><input id="showScreenshotCaption" type="checkbox" /> Mostrar legenda das imagens</label
+          >
+          <label><input id="showTableCaption" type="checkbox" /> Mostrar legenda das tabelas</label>
+          <label class="field"
+            >Pasta raiz para novos projetos<input
+              id="projectRoot"
+              placeholder="${HOME}/sistemas/cronoPrint"
+          /></label>
+        </div>
+      </section>
 
-  <section class="card"><h2>Gravação e consolidação</h2><div class="grid">
-    <label class="field">Scroll<select data-recording="scrollMode"><option value="with-interaction">Último, somente antes de interação</option><option value="all">Registrar cada pausa</option><option value="off">Não registrar</option></select></label>
-    <label class="field">Deslocamento mínimo (px)<input data-recording="scrollMinPx" type="number" min="1"></label>
-    <label class="field">Pausa do scroll (ms)<input data-recording="scrollIdleMs" type="number" min="100"></label>
-    <label class="field">Interações repetidas<select data-recording="repeatMode"><option value="consecutive">Manter a última consecutiva</option><option value="page">Manter a última por página e componente</option><option value="off">Manter todas</option></select></label>
-    <label class="field">Concluir digitação<select data-recording="typingFinish"><option value="blur">Ao sair do campo, Enter ou finalizar</option><option value="idle">Após pausa ou ao sair do campo</option></select></label>
-    <label class="field">Pausa da digitação (ms)<input data-recording="typingIdleMs" type="number" min="300"></label>
-    <label class="field">Incluir texto digitado<select data-recording="captureText" data-boolean><option value="true">Sim (exceto senhas e campos privados)</option><option value="false">Não</option></select></label>
-    <label class="field">Capturar entrada nas páginas<select data-recording="pageViews" data-boolean><option value="true">Sim</option><option value="false">Não</option></select></label>
-    <label class="field">Evitar entradas repetidas em cada site<select data-recording="skipInitialOriginPages" data-boolean><option value="true">Sim (ignorar pastas, rotas e parâmetros)</option><option value="false">Não, registrar cada URL</option></select></label>
-    <label class="field">Print no Word<select data-recording="separateScreens" data-boolean><option value="true">Um para cada evento mantido</option><option value="false">Agrupar telas semelhantes</option></select></label>
-    <label class="field">Verificar aba, URL e posição<select data-recording="validateCapture" data-boolean><option value="true">Sim (recomendado)</option><option value="false">Não</option></select></label>
-    <label class="field">Links comuns: aguardar print antes de navegar<select data-recording="delayLinkNavigation" data-boolean><option value="true">Sim (recomendado)</option><option value="false">Não</option></select></label>
-  </div><p class="muted">Pause ou finalize antes de salvar alterações. As regras valem para novas interações. Texto digitado e prints podem conter dados pessoais: revise antes de compartilhar. Senhas são excluídas do texto, mas imagens não são censuradas automaticamente.</p></section>
+      <section class="card">
+        <h2>Gravação e consolidação</h2>
+        <div class="grid">
+          <label class="field"
+            >Scroll<select data-recording="scrollMode">
+              <option value="with-interaction">Último, somente antes de interação</option>
+              <option value="all">Registrar cada pausa</option>
+              <option value="off">Não registrar</option>
+            </select></label
+          >
+          <label class="field"
+            >Deslocamento mínimo (px)<input data-recording="scrollMinPx" type="number" min="1"
+          /></label>
+          <label class="field"
+            >Pausa do scroll (ms)<input data-recording="scrollIdleMs" type="number" min="100"
+          /></label>
+          <label class="field"
+            >Interações repetidas<select data-recording="repeatMode">
+              <option value="consecutive">Manter a última consecutiva</option>
+              <option value="page">Manter a última por página e componente</option>
+              <option value="off">Manter todas</option>
+            </select></label
+          >
+          <label class="field"
+            >Concluir digitação<select data-recording="typingFinish">
+              <option value="blur">Ao sair do campo, Enter ou finalizar</option>
+              <option value="idle">Após pausa ou ao sair do campo</option>
+            </select></label
+          >
+          <label class="field"
+            >Pausa da digitação (ms)<input data-recording="typingIdleMs" type="number" min="300"
+          /></label>
+          <label class="field"
+            >Incluir texto digitado<select data-recording="captureText" data-boolean>
+              <option value="true">Sim (exceto senhas e campos privados)</option>
+              <option value="false">Não</option>
+            </select></label
+          >
+          <label class="field"
+            >Capturar entrada nas páginas<select data-recording="pageViews" data-boolean>
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select></label
+          >
+          <label class="field"
+            >Evitar entradas repetidas em cada site<select
+              data-recording="skipInitialOriginPages"
+              data-boolean
+            >
+              <option value="true">Sim (ignorar pastas, rotas e parâmetros)</option>
+              <option value="false">Não, registrar cada URL</option>
+            </select></label
+          >
+          <label class="field"
+            >Print no Word<select data-recording="separateScreens" data-boolean>
+              <option value="true">Um para cada evento mantido</option>
+              <option value="false">Última captura de cada página</option>
+            </select></label
+          >
+          <label class="field"
+            >Verificar aba, URL e posição<select data-recording="validateCapture" data-boolean>
+              <option value="true">Sim (recomendado)</option>
+              <option value="false">Não</option>
+            </select></label
+          >
+          <label class="field"
+            >Links comuns: aguardar print antes de navegar<select
+              data-recording="delayLinkNavigation"
+              data-boolean
+            >
+              <option value="true">Sim (recomendado)</option>
+              <option value="false">Não</option>
+            </select></label
+          >
+        </div>
+        <p class="muted">
+          Pause ou finalize antes de salvar alterações. As regras valem para novas interações. Texto
+          digitado e prints podem conter dados pessoais: revise antes de compartilhar. Senhas são
+          excluídas do texto, mas imagens não são censuradas automaticamente.
+        </p>
+      </section>
 
-  <section class="card"><h2>Imagens</h2><div class="grid">
-    <label class="field">Formato da tela<select id="screenFormat"><option value="jpeg">JPEG</option><option value="webp">WebP</option><option value="png">PNG</option></select></label>
-    <label class="field">Qualidade da tela<input id="screenQuality" type="number" min="1" max="100"></label>
-    <label class="field">Largura máxima da tela<input id="screenMaxWidth" type="number"></label>
-    <label class="field">Altura máxima da tela<input id="screenMaxHeight" type="number"></label>
-    <label class="field">Formato do componente<select id="componentFormat"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="webp">WebP</option></select></label>
-    <label class="field">Margem do microprint (px)<input id="componentPadding" type="number"></label>
-    <label class="field">Largura máxima do componente<input id="componentMaxWidth" type="number"></label>
-    <label class="field">Altura máxima do componente<input id="componentMaxHeight" type="number"></label>
-  </div><p class="muted">Esses valores valem para novas capturas. As imagens existentes não são redimensionadas novamente.</p></section>
+      <section class="card">
+        <h2>Imagens</h2>
+        <div class="grid">
+          <label class="field"
+            >Formato da tela<select id="screenFormat">
+              <option value="jpeg">JPEG</option>
+              <option value="webp">WebP</option>
+              <option value="png">PNG</option>
+            </select></label
+          >
+          <label class="field"
+            >Qualidade da tela<input id="screenQuality" type="number" min="1" max="100"
+          /></label>
+          <label class="field"
+            >Largura máxima da tela<input id="screenMaxWidth" type="number"
+          /></label>
+          <label class="field"
+            >Altura máxima da tela<input id="screenMaxHeight" type="number"
+          /></label>
+          <label class="field"
+            >Formato do componente<select id="componentFormat">
+              <option value="png">PNG</option>
+              <option value="jpeg">JPEG</option>
+              <option value="webp">WebP</option>
+            </select></label
+          >
+          <label class="field"
+            >Margem do microprint (px)<input id="componentPadding" type="number"
+          /></label>
+          <label class="field"
+            >Largura máxima do componente<input id="componentMaxWidth" type="number"
+          /></label>
+          <label class="field"
+            >Altura máxima do componente<input id="componentMaxHeight" type="number"
+          /></label>
+        </div>
+        <p class="muted">
+          Esses valores valem para novas capturas. As imagens existentes não são redimensionadas
+          novamente.
+        </p>
+      </section>
 
-  <section class="card"><h2>Textos automáticos</h2><p class="muted">Use <code>{name}</code>, <code>{value}</code> e <code>{texto-iluminado}</code> como variáveis.</p><div class="grid">
-    <label class="field">Clique em botão<input data-action-text="click-button"></label>
-    <label class="field">Clique em link<input data-action-text="click-link"></label>
-    <label class="field">Link com aparência de botão<input data-action-text="click-styled-button"></label>
-    <label class="field">Item de menu<input data-action-text="click-menu"></label>
-    <label class="field">Clique em campo<input data-action-text="click-field"></label>
-    <label class="field">Clique genérico<input data-action-text="click"></label>
-    <label class="field">Duplo clique<input data-action-text="double-click"></label>
-    <label class="field">Botão direito<input data-action-text="right-click"></label>
-    <label class="field">Digitação<input data-action-text="typing"></label>
-    <label class="field">Seleção<input data-action-text="select"></label>
-    <label class="field">Checkbox/radio<input data-action-text="toggle"></label>
-    <label class="field">Observação<input data-action-text="observation"></label>
-    <label class="field">Texto selecionado<input data-action-text="highlight-text"></label>
-    <label class="field">Entrada em nova página<input data-action-text="page-view"></label>
-    <label class="field">Rolagem da página<input data-action-text="scroll"></label>
-  </div></section>
+      <section class="card">
+        <h2>Textos automáticos</h2>
+        <p class="muted">
+          Use <code>{name}</code>, <code>{value}</code> e <code>{texto-iluminado}</code> como
+          variáveis.
+        </p>
+        <div class="grid">
+          <label class="field">Clique em botão<input data-action-text="click-button" /></label>
+          <label class="field">Clique em link<input data-action-text="click-link" /></label>
+          <label class="field"
+            >Link com aparência de botão<input data-action-text="click-styled-button"
+          /></label>
+          <label class="field">Item de menu<input data-action-text="click-menu" /></label>
+          <label class="field">Clique em campo<input data-action-text="click-field" /></label>
+          <label class="field">Clique genérico<input data-action-text="click" /></label>
+          <label class="field">Duplo clique<input data-action-text="double-click" /></label>
+          <label class="field">Botão direito<input data-action-text="right-click" /></label>
+          <label class="field">Digitação<input data-action-text="typing" /></label>
+          <label class="field">Seleção<input data-action-text="select" /></label>
+          <label class="field">Checkbox/radio<input data-action-text="toggle" /></label>
+          <label class="field">Observação<input data-action-text="observation" /></label>
+          <label class="field">Texto selecionado<input data-action-text="highlight-text" /></label>
+          <label class="field">Entrada em nova página<input data-action-text="page-view" /></label>
+          <label class="field">Rolagem da página<input data-action-text="scroll" /></label>
+        </div>
+      </section>
 
-  <section class="card"><h2>Colunas</h2><p class="muted">Fontes: sequence, auto-description, component-name, microprint, action, editable, url, page-title, timestamp, value e fixed-text:Texto.</p>
-    <div id="columns" class="columns"></div><p><button id="addColumn">Adicionar coluna</button></p></section>
+      <section class="card">
+        <h2>Colunas</h2>
+        <p class="muted">
+          Fontes: sequence, auto-description, component-name, microprint, action, editable, url,
+          page-title, timestamp, value e fixed-text:Texto.
+        </p>
+        <div id="columns" class="columns"></div>
+        <p><button id="addColumn">Adicionar coluna</button></p>
+      </section>
 
-  <section class="card"><h2>Tema</h2><div class="grid">
-    <label class="field">Fonte<input id="fontFamily"></label>
-    <label class="field">Tamanho do corpo (pt)<input id="bodyFontSize" type="number"></label>
-    <label class="field">Cor dos títulos<input id="headingColor" type="color"></label>
-    <label class="field">Fundo do cabeçalho<input id="tableHeaderBackground" type="color"></label>
-    <label class="field">Texto do cabeçalho<input id="tableHeaderColor" type="color"></label>
-    <label class="field">Cor do marcador<input id="markerBackground" type="color"></label>
-    <label class="field">Cor do nome do componente<input id="componentColor" type="color"></label>
-    <label class="field">Nome do componente<select id="componentBold"><option value="true">Negrito</option><option value="false">Normal</option></select></label>
-    <label class="field">Cor dos links textuais<input id="linkColor" type="color"></label>
-    <label class="field">Usar cor dos links definida em<select id="linkColorSource"><option value="settings">Configuração acima</option><option value="css">CSS do projeto</option></select></label>
-    <label class="field">Altura do microprint (pt)<input id="microprintHeightPt" type="number" min="6" max="72"></label>
-    <label class="field">Largura máxima do microprint (pt)<input id="microprintMaxWidthPt" type="number" min="12" max="240"></label>
-    <label class="field">Proporção do microprint<select id="microprintPreserveAspect"><option value="true">Manter proporção</option><option value="false">Usar altura e largura exatas</option></select></label>
-    <label class="field">Tamanho dos cronocliques (pt)<input id="markerSizePt" type="number" min="8" max="72"></label>
-    <label class="field">Espaço depois do título (pt)<input id="titleAfter" type="number"></label>
-    <label class="field">Espaço depois do print (pt)<input id="screenAfter" type="number"></label>
-    <label class="field">Espaço depois da tabela (pt)<input id="tableAfter" type="number"></label>
-  </div></section>
+      <section class="card">
+        <h2>Tema</h2>
+        <div class="grid">
+          <label class="field">Fonte<input id="fontFamily" /></label>
+          <label class="field"
+            >Tamanho do corpo (pt)<input id="bodyFontSize" type="number"
+          /></label>
+          <label class="field">Cor dos títulos<input id="headingColor" type="color" /></label>
+          <label class="field"
+            >Fundo do cabeçalho<input id="tableHeaderBackground" type="color"
+          /></label>
+          <label class="field"
+            >Texto do cabeçalho<input id="tableHeaderColor" type="color"
+          /></label>
+          <label class="field">Cor do marcador<input id="markerBackground" type="color" /></label>
+          <label class="field"
+            >Cor do nome do componente<input id="componentColor" type="color"
+          /></label>
+          <label class="field"
+            >Nome do componente<select id="componentBold">
+              <option value="true">Negrito</option>
+              <option value="false">Normal</option>
+            </select></label
+          >
+          <label class="field">Cor dos links textuais<input id="linkColor" type="color" /></label>
+          <label class="field"
+            >Usar cor dos links definida em<select id="linkColorSource">
+              <option value="settings">Configuração acima</option>
+              <option value="css">CSS do projeto</option>
+            </select></label
+          >
+          <label class="field"
+            >Altura do microprint (pt)<input id="microprintHeightPt" type="number" min="6" max="72"
+          /></label>
+          <label class="field"
+            >Largura máxima do microprint (pt)<input
+              id="microprintMaxWidthPt"
+              type="number"
+              min="12"
+              max="240"
+          /></label>
+          <label class="field"
+            >Proporção do microprint<select id="microprintPreserveAspect">
+              <option value="true">Manter proporção</option>
+              <option value="false">Usar altura e largura exatas</option>
+            </select></label
+          >
+          <label class="field"
+            >Tamanho dos cronocliques (pt)<input id="markerSizePt" type="number" min="8" max="72"
+          /></label>
+          <label class="field"
+            >Espaço depois do título (pt)<input id="titleAfter" type="number"
+          /></label>
+          <label class="field"
+            >Espaço depois do print (pt)<input id="screenAfter" type="number"
+          /></label>
+          <label class="field"
+            >Espaço depois da tabela (pt)<input id="tableAfter" type="number"
+          /></label>
+        </div>
+      </section>
 
-  <section class="card"><h2>Borda e sombra do print</h2><div class="grid">
-    <label><input id="printBorderEnabled" type="checkbox"> Mostrar borda</label>
-    <label class="field">Cor da borda<input id="printBorderColor" type="color"></label>
-    <label class="field">Espessura (pt)<input id="printBorderWidth" type="number" min="0" max="12" step="0.5"></label>
-    <label class="field">Tipo de borda<select id="printBorderType"><option value="solid">Contínua</option><option value="dash">Tracejada</option><option value="dot">Pontilhada</option><option value="double">Dupla</option></select></label>
-    <label><input id="printShadow" type="checkbox"> Mostrar sombra</label>
-    <label class="field">Cor da sombra<input id="printShadowColor" type="color"></label>
-    <label class="field">Opacidade (%)<input id="printShadowOpacity" type="number" min="0" max="100"></label>
-    <label class="field">Desfoque (pt)<input id="printShadowBlur" type="number" min="0" max="30"></label>
-    <label class="field">Distância (pt)<input id="printShadowOffset" type="number" min="0" max="30"></label>
-  </div></section>
-  <section class="card"><h2>Eventos gravados</h2><div id="steps" class="steps"></div></section>
-  <div id="captureWarnings" class="error"></div>
-  <p id="status" class="muted"></p>
-  <p><a id="documentLink" href="#" hidden>Abrir DOCX gerado</a></p>
-  <script src="recording-policy.js"></script>
-  <script src="review.js"></script>
-</main></body></html>
+      <section class="card">
+        <h2>Borda e sombra do print</h2>
+        <div class="grid">
+          <label><input id="printBorderEnabled" type="checkbox" /> Mostrar borda</label>
+          <label class="field">Cor da borda<input id="printBorderColor" type="color" /></label>
+          <label class="field"
+            >Espessura (pt)<input id="printBorderWidth" type="number" min="0" max="12" step="0.5"
+          /></label>
+          <label class="field"
+            >Tipo de borda<select id="printBorderType">
+              <option value="solid">Contínua</option>
+              <option value="dash">Tracejada</option>
+              <option value="dot">Pontilhada</option>
+              <option value="double">Dupla</option>
+            </select></label
+          >
+          <label><input id="printShadow" type="checkbox" /> Mostrar sombra</label>
+          <label class="field">Cor da sombra<input id="printShadowColor" type="color" /></label>
+          <label class="field"
+            >Opacidade (%)<input id="printShadowOpacity" type="number" min="0" max="100"
+          /></label>
+          <label class="field"
+            >Desfoque (pt)<input id="printShadowBlur" type="number" min="0" max="30"
+          /></label>
+          <label class="field"
+            >Distância (pt)<input id="printShadowOffset" type="number" min="0" max="30"
+          /></label>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Eventos gravados</h2>
+        <div id="steps" class="steps"></div>
+      </section>
+      <div id="captureWarnings" class="error"></div>
+      <p id="status" class="muted"></p>
+      <p><a id="documentLink" href="#" hidden>Abrir DOCX gerado</a></p>
+      <script src="recording-policy.js"></script>
+      <script src="review.js"></script>
+    </main>
+  </body>
+</html>

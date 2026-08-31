@@ -6,20 +6,39 @@ const colorOut = (value) => value.replace("#", "").toUpperCase();
 
 function automaticDescription(step) {
   const key = ChronoPolicy.actionKey(step);
-  const template = session.config.actionTexts?.[key] || session.config.actionTexts?.generic || "Interaja com {name}.";
-  return template.replaceAll("{name}", step.component?.name || "componente").replaceAll("{value}", ChronoPolicy.actionValue(step)).replaceAll("{url}", step.page?.url || "").replaceAll("{pageName}", step.page?.pageName || "página").replaceAll("{scrollX}", step.scrollX ?? step.scroll?.x ?? 0).replaceAll("{scrollY}", step.scrollY ?? step.scroll?.y ?? 0).replaceAll("{texto-iluminado}", step.selectedText || step.component?.name || "texto").replaceAll("{highlighted-text}", step.selectedText || step.component?.name || "texto");
+  const template =
+    session.config.actionTexts?.[key] ||
+    session.config.actionTexts?.generic ||
+    "Interaja com {name}.";
+  return template
+    .replaceAll("{name}", step.component?.name || "componente")
+    .replaceAll("{value}", ChronoPolicy.actionValue(step))
+    .replaceAll("{url}", step.page?.url || "")
+    .replaceAll("{pageName}", step.page?.pageName || "página")
+    .replaceAll("{scrollX}", step.scrollX ?? step.scroll?.x ?? 0)
+    .replaceAll("{scrollY}", step.scrollY ?? step.scroll?.y ?? 0)
+    .replaceAll("{texto-iluminado}", step.selectedText || step.component?.name || "texto")
+    .replaceAll("{highlighted-text}", step.selectedText || step.component?.name || "texto");
 }
 
 function showColorPreviews() {
-  document.querySelectorAll('input[type="color"]').forEach(input => {
+  document.querySelectorAll('input[type="color"]').forEach((input) => {
     let preview = input.nextElementSibling;
-    if (!preview?.classList.contains('color-preview')) {
-      preview = document.createElement('span'); preview.className = 'color-preview';
-      const swatch=document.createElement('span'); swatch.className='color-swatch'; swatch.setAttribute('aria-hidden','true');
-      preview.append(swatch,document.createElement('code')); input.after(preview);
+    if (!preview?.classList.contains("color-preview")) {
+      preview = document.createElement("span");
+      preview.className = "color-preview";
+      const swatch = document.createElement("span");
+      swatch.className = "color-swatch";
+      swatch.setAttribute("aria-hidden", "true");
+      preview.append(swatch, document.createElement("code"));
+      input.after(preview);
     }
-    const update=()=>{preview.firstElementChild.style.backgroundColor=input.value;preview.lastElementChild.textContent=input.value.toUpperCase();};
-    input.oninput=update; update();
+    const update = () => {
+      preview.firstElementChild.style.backgroundColor = input.value;
+      preview.lastElementChild.textContent = input.value.toUpperCase();
+    };
+    input.oninput = update;
+    update();
   });
 }
 
@@ -28,41 +47,70 @@ function renderColumns() {
   session.config.columns.forEach((column, index) => {
     const row = document.createElement("div");
     row.className = "column";
-    row.innerHTML = `<input aria-label="Título" value="${column.title || ""}"><input aria-label="Fontes" value="${(column.source || []).join(", ")}"><input aria-label="Largura" type="number" value="${column.width || 20}"><select aria-label="Alinhamento"><option value="left">Esquerda</option><option value="center">Centralizado</option><option value="right">Direita</option><option value="justify">Justificado</option></select><button>Remover</button>`;
+    row.innerHTML =
+      '<input aria-label="Título"><input aria-label="Fontes"><input aria-label="Largura" type="number"><select aria-label="Alinhamento"><option value="left">Esquerda</option><option value="center">Centralizado</option><option value="right">Direita</option><option value="justify">Justificado</option></select><button>Remover</button>';
     const inputs = row.querySelectorAll("input");
-    inputs[0].oninput = () => column.title = inputs[0].value;
-    inputs[1].oninput = () => column.source = inputs[1].value.split(",").map((v) => v.trim()).filter(Boolean);
-    inputs[2].oninput = () => column.width = Number(inputs[2].value);
-    const alignment = row.querySelector("select"); alignment.value = column.alignment || "left"; alignment.onchange = () => column.alignment = alignment.value;
-    row.querySelector("button").onclick = () => { session.config.columns.splice(index, 1); renderColumns(); };
+    inputs[0].value = column.title || "";
+    inputs[1].value = (column.source || []).join(", ");
+    inputs[2].value = column.width || 20;
+    inputs[0].oninput = () => (column.title = inputs[0].value);
+    inputs[1].oninput = () =>
+      (column.source = inputs[1].value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean));
+    inputs[2].oninput = () => (column.width = Number(inputs[2].value));
+    const alignment = row.querySelector("select");
+    alignment.value = column.alignment || "left";
+    alignment.onchange = () => (column.alignment = alignment.value);
+    row.querySelector("button").onclick = () => {
+      session.config.columns.splice(index, 1);
+      renderColumns();
+    };
     $("columns").append(row);
   });
 }
 
 async function renderSteps() {
   $("steps").innerHTML = "";
-  if (!session.steps.length) $("steps").innerHTML = '<p class="muted">Nenhum evento capturado ainda.</p>';
+  if (!session.steps.length)
+    $("steps").innerHTML = '<p class="muted">Nenhum evento capturado ainda.</p>';
   session.steps.forEach((step, index) => {
     const row = document.createElement("div");
     row.className = "step";
-    row.innerHTML = `<strong>${step.sequence}</strong><div class="micro-preview"></div><div><label class="field">Nome do componente<input class="name"></label><label class="field">Descrição<textarea placeholder="Escreva a descrição posteriormente ou deixe em branco"></textarea></label><small class="muted">${step.action} · ${step.page.pageName}</small></div><button>Excluir</button>`;
+    row.innerHTML =
+      '<strong></strong><div class="micro-preview"></div><div><label class="field">Nome do componente<input class="name"></label><label class="field">Descrição<textarea placeholder="Escreva a descrição posteriormente ou deixe em branco"></textarea></label><small class="muted"></small></div><button>Excluir</button>';
+    row.querySelector("strong").textContent = step.sequence;
+    row.querySelector("small").textContent = `${step.action} · ${step.page.pageName}`;
     const preview = row.querySelector(".micro-preview");
     if (step.component?.role === "link" && step.component?.textOnlyLink) {
-      preview.textContent = step.component.name; preview.classList.add("text-link");
+      preview.textContent = step.component.name;
+      preview.classList.add("text-link");
     } else {
       if (step.images?.microprint) {
-        const image = document.createElement("img"); image.alt = "Microprint do componente"; preview.append(image);
-        chrome.runtime.sendMessage({ type: "READ_IMAGE", relativePath: step.images.microprint }).then((response) => { if (response?.dataUrl) image.src = response.dataUrl; });
+        const image = document.createElement("img");
+        image.alt = "Microprint do componente";
+        preview.append(image);
+        chrome.runtime
+          .sendMessage({ type: "READ_IMAGE", relativePath: step.images.microprint })
+          .then((response) => {
+            if (response?.dataUrl) image.src = response.dataUrl;
+          });
       } else preview.textContent = step.action === "scroll" ? "Rolagem" : "Página";
     }
     row.querySelector(".name").value = step.component.name;
     row.querySelector("textarea").value = step.description || automaticDescription(step);
-    row.querySelector(".name").oninput = (e) => step.component.name = e.target.value;
-    row.querySelector("textarea").oninput = (e) => step.description = e.target.value;
+    row.querySelector(".name").oninput = (e) => (step.component.name = e.target.value);
+    row.querySelector("textarea").oninput = (e) => (step.description = e.target.value);
     row.querySelector("button").onclick = () => {
       session.steps.splice(index, 1);
-      session.steps.forEach((item, i) => item.sequence = i + 1);
-      session.groups.forEach((group) => group.stepIds = group.stepIds.filter((id) => session.steps.some((step) => step.id === id)));
+      session.steps.forEach((item, i) => (item.sequence = i + 1));
+      session.groups.forEach(
+        (group) =>
+          (group.stepIds = group.stepIds.filter((id) =>
+            session.steps.some((step) => step.id === id),
+          )),
+      );
       renderSteps();
     };
     $("steps").append(row);
@@ -72,8 +120,12 @@ async function renderSteps() {
 function readForm() {
   const c = session.config;
   c.recording ||= {};
-  document.querySelectorAll("[data-recording]").forEach(input => {
-    c.recording[input.dataset.recording] = input.hasAttribute("data-boolean") ? input.value === "true" : input.type === "number" ? Math.max(Number(input.min || 1), Number(input.value)) : input.value;
+  document.querySelectorAll("[data-recording]").forEach((input) => {
+    c.recording[input.dataset.recording] = input.hasAttribute("data-boolean")
+      ? input.value === "true"
+      : input.type === "number"
+        ? Math.max(Number(input.min || 1), Number(input.value))
+        : input.value;
   });
   c.documentTitle = $("documentTitle").value;
   c.sectionTitlePattern = $("sectionTitlePattern").value;
@@ -82,8 +134,17 @@ function readForm() {
   c.showScreenshotCaption = $("showScreenshotCaption").checked;
   c.showTableCaption = $("showTableCaption").checked;
   c.linkColorSource = $("linkColorSource").value;
-  c.printDecoration = { enabled:$("printBorderEnabled").checked,color:colorOut($("printBorderColor").value),widthPt:Number($("printBorderWidth").value),type:$("printBorderType").value,shadow:$("printShadow").checked,shadowColor:colorOut($("printShadowColor").value),opacity:Number($("printShadowOpacity").value),blurPt:Number($("printShadowBlur").value),offsetPt:Number($("printShadowOffset").value) };
-  c.groupWindowMs = Number($("groupWindow").value) * 1000;
+  c.printDecoration = {
+    enabled: $("printBorderEnabled").checked,
+    color: colorOut($("printBorderColor").value),
+    widthPt: Number($("printBorderWidth").value),
+    type: $("printBorderType").value,
+    shadow: $("printShadow").checked,
+    shadowColor: colorOut($("printShadowColor").value),
+    opacity: Number($("printShadowOpacity").value),
+    blurPt: Number($("printShadowBlur").value),
+    offsetPt: Number($("printShadowOffset").value),
+  };
   c.projectRoot = $("projectRoot").value.trim();
   const t = c.theme;
   t.fontFamily = $("fontFamily").value;
@@ -98,13 +159,19 @@ function readForm() {
   t.titleAfter = Number($("titleAfter").value);
   t.screenAfter = Number($("screenAfter").value);
   t.tableAfter = Number($("tableAfter").value);
-  c.microprint ||= {}; c.markers ||= {}; c.actionTexts ||= {};
+  c.microprint ||= {};
+  c.markers ||= {};
+  c.actionTexts ||= {};
   c.microprint.heightPt = Number($("microprintHeightPt").value);
   c.microprint.maxWidthPt = Number($("microprintMaxWidthPt").value);
   c.microprint.preserveAspectRatio = $("microprintPreserveAspect").value === "true";
   c.markers.sizePt = Number($("markerSizePt").value);
-  document.querySelectorAll("[data-action-text]").forEach((input) => c.actionTexts[input.dataset.actionText] = input.value);
-  c.images ||= {}; c.images.screen ||= {}; c.images.component ||= {};
+  document
+    .querySelectorAll("[data-action-text]")
+    .forEach((input) => (c.actionTexts[input.dataset.actionText] = input.value));
+  c.images ||= {};
+  c.images.screen ||= {};
+  c.images.component ||= {};
   c.images.screen.format = $("screenFormat").value;
   c.images.screen.quality = Number($("screenQuality").value);
   c.images.screen.maxWidth = Number($("screenMaxWidth").value);
@@ -117,15 +184,24 @@ function readForm() {
 
 async function load() {
   const data = await chrome.runtime.sendMessage({ type: "GET_SESSION" });
-  if (!data.ok) { $("status").textContent = data.error || "Não foi possível carregar as configurações."; return; }
+  if (!data.ok) {
+    $("status").textContent = data.error || "Não foi possível carregar as configurações.";
+    return;
+  }
   editingDefaults = !data.session;
-  session = data.session || {steps:[],groups:[],config:data.config};
+  session = data.session || { steps: [], groups: [], config: data.config };
   $("generate").disabled = editingDefaults;
-  if (editingDefaults) $("status").textContent = "Estas configurações serão usadas nos próximos projetos.";
+  if (editingDefaults)
+    $("status").textContent = "Estas configurações serão usadas nos próximos projetos.";
   $("documentLink").hidden = session.document?.state !== "ready";
-  const c = session.config, t = c.theme;
-  document.querySelectorAll("[data-recording]").forEach(input => input.value = String(c.recording?.[input.dataset.recording] ?? ""));
-  $("captureWarnings").textContent = (session.captureFailures || []).map(item => `${item.action}: ${item.error}`).join("\n");
+  const c = session.config,
+    t = c.theme;
+  document
+    .querySelectorAll("[data-recording]")
+    .forEach((input) => (input.value = String(c.recording?.[input.dataset.recording] ?? "")));
+  $("captureWarnings").textContent = (session.captureFailures || [])
+    .map((item) => `${item.action}: ${item.error}`)
+    .join("\n");
   $("documentTitle").value = c.documentTitle;
   $("sectionTitlePattern").value = c.sectionTitlePattern;
   $("screenshotCaptionPattern").value = c.screenshotCaptionPattern;
@@ -143,7 +219,6 @@ async function load() {
   $("printShadowOpacity").value = decoration.opacity ?? 25;
   $("printShadowBlur").value = decoration.blurPt ?? 4;
   $("printShadowOffset").value = decoration.offsetPt ?? 3;
-  $("groupWindow").value = (c.groupWindowMs ?? 0) / 1000;
   $("projectRoot").value = c.projectRoot || "${HOME}/sistemas/cronoPrint";
   $("fontFamily").value = t.fontFamily;
   $("bodyFontSize").value = t.bodyFontSize;
@@ -161,16 +236,33 @@ async function load() {
   $("microprintMaxWidthPt").value = c.microprint?.maxWidthPt || 90;
   $("microprintPreserveAspect").value = String(c.microprint?.preserveAspectRatio !== false);
   $("markerSizePt").value = c.markers?.sizePt || 18;
-  document.querySelectorAll("[data-action-text]").forEach((input) => input.value = c.actionTexts?.[input.dataset.actionText] || "");
-  const si = c.images?.screen || {}, ci = c.images?.component || {};
-  $("screenFormat").value = si.format || "jpeg"; $("screenQuality").value = si.quality || 82;
-  $("screenMaxWidth").value = si.maxWidth || 1920; $("screenMaxHeight").value = si.maxHeight || 1080;
-  $("componentFormat").value = ci.format || "png"; $("componentPadding").value = ci.padding ?? 18;
-  $("componentMaxWidth").value = ci.maxWidth || 600; $("componentMaxHeight").value = ci.maxHeight || 300;
-  showColorPreviews(); renderColumns(); renderSteps();
+  document
+    .querySelectorAll("[data-action-text]")
+    .forEach((input) => (input.value = c.actionTexts?.[input.dataset.actionText] || ""));
+  const si = c.images?.screen || {},
+    ci = c.images?.component || {};
+  $("screenFormat").value = si.format || "jpeg";
+  $("screenQuality").value = si.quality || 82;
+  $("screenMaxWidth").value = si.maxWidth || 1920;
+  $("screenMaxHeight").value = si.maxHeight || 1080;
+  $("componentFormat").value = ci.format || "png";
+  $("componentPadding").value = ci.padding ?? 18;
+  $("componentMaxWidth").value = ci.maxWidth || 600;
+  $("componentMaxHeight").value = ci.maxHeight || 300;
+  showColorPreviews();
+  renderColumns();
+  renderSteps();
 }
 
-$("addColumn").onclick = () => { session.config.columns.push({ title: "NOVA COLUNA", source: ["editable"], width: 20, alignment: "left" }); renderColumns(); };
+$("addColumn").onclick = () => {
+  session.config.columns.push({
+    title: "NOVA COLUNA",
+    source: ["editable"],
+    width: 20,
+    alignment: "left",
+  });
+  renderColumns();
+};
 $("save").onclick = async () => {
   try {
     readForm();
@@ -178,35 +270,59 @@ $("save").onclick = async () => {
       const saved = await chrome.runtime.sendMessage({ type: "SAVE_SESSION", session });
       if (!saved?.ok) throw new Error(saved?.error || "Não foi possível salvar a sessão.");
     }
-    const configured = await chrome.runtime.sendMessage({ type: "SAVE_CONFIG", config: session.config });
-    if (!configured?.ok) throw new Error(configured?.error || "Não foi possível salvar a configuração.");
+    const configured = await chrome.runtime.sendMessage({
+      type: "SAVE_CONFIG",
+      config: session.config,
+    });
+    if (!configured?.ok)
+      throw new Error(configured?.error || "Não foi possível salvar a configuração.");
     $("status").textContent = "Alterações salvas.";
     const currentTab = await chrome.tabs.getCurrent();
     if (currentTab?.id != null) await chrome.tabs.remove(currentTab.id);
     else window.close();
-  } catch (error) { $("status").textContent = `Erro: ${error.message}`; }
+  } catch (error) {
+    $("status").textContent = `Erro: ${error.message}`;
+  }
 };
 $("generate").onclick = async () => {
   const allowPartial = !!session?.captureFailures?.length;
-  if (allowPartial && !window.confirm(`${session.captureFailures.length} captura(s) falharam. Gerar somente os ${session.steps.length} passos salvos, com um aviso no documento?`)) return;
+  if (
+    allowPartial &&
+    !window.confirm(
+      `${session.captureFailures.length} captura(s) falharam. Gerar somente os ${session.steps.length} passos salvos, com um aviso no documento?`,
+    )
+  )
+    return;
   $("documentLink").hidden = true;
-  const button = $("generate"); button.disabled = true; $("status").textContent = "Gerando DOCX...";
+  const button = $("generate");
+  button.disabled = true;
+  $("status").textContent = "Gerando DOCX...";
   try {
-    readForm(); const saved = await chrome.runtime.sendMessage({ type: "SAVE_SESSION", session });
+    readForm();
+    const saved = await chrome.runtime.sendMessage({ type: "SAVE_SESSION", session });
     if (!saved?.ok) throw new Error(saved?.error || "Não foi possível salvar a sessão.");
-    const response = await chrome.runtime.sendMessage({ type: "GENERATE_DOCX", fileName: session.config.documentTitle, allowPartial });
+    const response = await chrome.runtime.sendMessage({
+      type: "GENERATE_DOCX",
+      fileName: session.config.documentTitle,
+      allowPartial,
+    });
     if (!response?.ok) throw new Error(response?.error || "Falha ao gerar DOCX.");
     $("status").textContent = `DOCX criado em ${response.output}`;
     session.document = response.document;
     $("documentLink").hidden = false;
-  } catch (error) { $("status").textContent = `Erro: ${error.message}`; }
-  finally { button.disabled = false; }
+  } catch (error) {
+    $("status").textContent = `Erro: ${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
 };
-$("documentLink").onclick = async event => {
+$("documentLink").onclick = async (event) => {
   event.preventDefault();
   try {
     const result = await chrome.runtime.sendMessage({ type: "OPEN_DOCX" });
     if (!result?.ok) throw new Error(result?.error || "Não foi possível abrir o DOCX.");
-  } catch (error) { $("status").textContent = `Erro: ${error.message}`; }
+  } catch (error) {
+    $("status").textContent = `Erro: ${error.message}`;
+  }
 };
 load();
