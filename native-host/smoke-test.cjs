@@ -111,6 +111,7 @@ function dataUrl(file, mime) { return `data:${mime};base64,${fs.readFileSync(fil
   for (const id of [1,3]) if (!firstScreen.includes(`id="ChronoClick_${id}"`)) throw new Error('Cronocliques não foram agrupados no primeiro print.');
   savedSession.captureFailures = [{ action: 'click', error: 'A página mudou antes do print.' }];
   savedSession.config.showScreenshotCaption=false;
+  savedSession.config.printDecoration={enabled:true,color:'125678',widthPt:2,type:'dash',shadow:true,shadowColor:'334455',opacity:30,blurPt:5,offsetPt:2};
   savedSession.config.showTableCaption=false;
   savedSession.config.theme.linkColor='CC2288';
   savedSession.config.linkColorSource='settings';
@@ -123,6 +124,7 @@ function dataUrl(file, mime) { return `data:${mime};base64,${fs.readFileSync(fil
   if (!partialXml.includes('GRAVAÇÃO INCOMPLETA') || !partialXml.includes('A página mudou antes do print.')) throw new Error('Aviso de exportação parcial ausente.');
   if(partialXml.includes('w:pStyle w:val="ChronoCaption"')||partialXml.includes('w:pStyle w:val="ChronoTableCaption"'))throw new Error('Legendas desativadas ainda aparecem.');
   if(!partialXml.includes('w:color w:val="CC2288"'))throw new Error('CSS sobrescreveu a cor do link escolhida.');
+  if(!partialXml.includes('<a:ln w="25400"')||!partialXml.includes('<a:prstDash val="dash"')||!partialXml.includes('<a:outerShdw')||!partialXml.includes('val="125678"'))throw new Error('Borda ou sombra do print ausente.');
   for (const [appearance,label] of [['button','botão'],['menu','menu']]) {
     savedSession.steps[2].component.appearance=appearance;
     savedSession.steps[2].component.textOnlyLink=false;

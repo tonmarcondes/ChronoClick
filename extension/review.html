@@ -110,6 +110,17 @@
     <label class="field">Espaço depois da tabela (pt)<input id="tableAfter" type="number"></label>
   </div></section>
 
+  <section class="card"><h2>Borda e sombra do print</h2><div class="grid">
+    <label><input id="printBorderEnabled" type="checkbox"> Mostrar borda</label>
+    <label class="field">Cor da borda<input id="printBorderColor" type="color"></label>
+    <label class="field">Espessura (pt)<input id="printBorderWidth" type="number" min="0" max="12" step="0.5"></label>
+    <label class="field">Tipo de borda<select id="printBorderType"><option value="solid">Contínua</option><option value="dash">Tracejada</option><option value="dot">Pontilhada</option><option value="double">Dupla</option></select></label>
+    <label><input id="printShadow" type="checkbox"> Mostrar sombra</label>
+    <label class="field">Cor da sombra<input id="printShadowColor" type="color"></label>
+    <label class="field">Opacidade (%)<input id="printShadowOpacity" type="number" min="0" max="100"></label>
+    <label class="field">Desfoque (pt)<input id="printShadowBlur" type="number" min="0" max="30"></label>
+    <label class="field">Distância (pt)<input id="printShadowOffset" type="number" min="0" max="30"></label>
+  </div></section>
   <section class="card"><h2>Eventos gravados</h2><div id="steps" class="steps"></div></section>
   <div id="captureWarnings" class="error"></div>
   <p id="status" class="muted"></p>

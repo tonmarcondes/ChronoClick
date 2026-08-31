@@ -81,6 +81,7 @@ function readForm() {
   c.showScreenshotCaption = $("showScreenshotCaption").checked;
   c.showTableCaption = $("showTableCaption").checked;
   c.linkColorSource = $("linkColorSource").value;
+  c.printDecoration = { enabled:$("printBorderEnabled").checked,color:colorOut($("printBorderColor").value),widthPt:Number($("printBorderWidth").value),type:$("printBorderType").value,shadow:$("printShadow").checked,shadowColor:colorOut($("printShadowColor").value),opacity:Number($("printShadowOpacity").value),blurPt:Number($("printShadowBlur").value),offsetPt:Number($("printShadowOffset").value) };
   c.groupWindowMs = Number($("groupWindow").value) * 1000;
   c.projectRoot = $("projectRoot").value.trim();
   const t = c.theme;
@@ -128,6 +129,16 @@ async function load() {
   $("showScreenshotCaption").checked = c.showScreenshotCaption !== false;
   $("showTableCaption").checked = c.showTableCaption !== false;
   $("linkColorSource").value = c.linkColorSource || "settings";
+  const decoration = c.printDecoration || {};
+  $("printBorderEnabled").checked = decoration.enabled === true;
+  $("printBorderColor").value = colorIn(decoration.color || "CBD5E1");
+  $("printBorderWidth").value = decoration.widthPt ?? 1;
+  $("printBorderType").value = decoration.type || "solid";
+  $("printShadow").checked = decoration.shadow === true;
+  $("printShadowColor").value = colorIn(decoration.shadowColor || "000000");
+  $("printShadowOpacity").value = decoration.opacity ?? 25;
+  $("printShadowBlur").value = decoration.blurPt ?? 4;
+  $("printShadowOffset").value = decoration.offsetPt ?? 3;
   $("groupWindow").value = (c.groupWindowMs ?? 0) / 1000;
   $("projectRoot").value = c.projectRoot || "${HOME}/sistemas/cronoPrint";
   $("fontFamily").value = t.fontFamily;

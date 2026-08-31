@@ -5,6 +5,7 @@ const sharp = require("sharp");
 const JSZip = require("jszip");
 const placeMarkers = require("./marker-layout.cjs");
 const { latestPageGroups } = require("./page-groups.cjs");
+const { decoratePrints } = require("./print-decoration.cjs");
 require("../extension/recording-policy.js");
 const {
   AlignmentType, BorderStyle, Document, Footer, Header, ImageRun, PageNumber,
@@ -259,7 +260,7 @@ async function patchPackage(buffer) {
       if (runStart >= 0 && runEnd >= 0) documentXml = documentXml.slice(0, runStart) + markerXml(marker) + documentXml.slice(runEnd + 6);
     }
   }
-  zip.file("word/document.xml", documentXml);
+  zip.file("word/document.xml", decoratePrints(documentXml, config.printDecoration));
   return zip.generateAsync({ type: "nodebuffer" });
 }
 
