@@ -99,13 +99,14 @@ function dataUrl(file, mime) { return `data:${mime};base64,${fs.readFileSync(fil
   finally { fs.renameSync(originalFile + ".test-backup", originalFile); }
   if (!rejectedMissing) throw new Error("Exportação não rejeitou print ausente.");
   savedSession.config.recording = { separateScreens: false };
+  savedSession.steps[2].markerRects = {"#fleet":savedSession.steps[0].rect};
   savedSession.config.groupWindowMs = 0;
   savedSession.config.documentTitle = 'Manual — {pageName}';
   await call({ command:'saveSession', projectPath, session:savedSession });
   const grouped = await call({ command:'generateDocx', projectPath, fileName:'Manual — {pageName}' });
   const groupedXml = spawnSync('unzip',['-p',grouped.output,'word/document.xml'],{encoding:'utf8'}).stdout;
   if (grouped.output !== generated.output || !groupedXml.includes('Manual — Página de teste') || groupedXml.includes('{pageName}')) throw new Error('Título interno ou nome do projeto incorreto.');
-  if ((groupedXml.match(/<w:tbl>/g)||[]).length !== 4) throw new Error('Agrupamento deveria gerar 4 tabelas, preservando retorno à página e scroll.');
+  if ((groupedXml.match(/<w:tbl>/g)||[]).length !== 3) throw new Error('Agrupamento deveria gerar 3 tabelas, usando a última tela e preservando retorno à página.');
   const firstScreen = groupedXml.slice(0,groupedXml.indexOf('<w:tbl>'));
   for (const id of [1,3]) if (!firstScreen.includes(`id="ChronoClick_${id}"`)) throw new Error('Cronocliques não foram agrupados no primeiro print.');
   savedSession.captureFailures = [{ action: 'click', error: 'A página mudou antes do print.' }];

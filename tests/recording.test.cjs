@@ -22,6 +22,16 @@ const event = (action='click', selector='#button') => ({action,component:{select
 const media = {screenDataUrl:'data:image/png;base64,AA',microDataUrl:null,signature:[1]};
 (async () => {
   assert.equal(policy.defaults.scrollMode,'with-interaction');
+  const {latestPageGroups}=require('../cli/page-groups.cjs');
+  const latestSession={config:{recording:{separateScreens:false}},steps:[
+    {id:'a',page:{url:'https://test/a'},images:{screen:'first.png'}},
+    {id:'b',page:{url:'https://test/a',scrollY:600},images:{screen:'last.png'}},
+    {id:'c',page:{url:'https://test/b'},images:{screen:'next.png'}},
+    {id:'d',page:{url:'https://test/a'},images:{screen:'return.png'}}]};
+  const pageGroups=latestPageGroups(latestSession);
+  assert.equal(pageGroups.length,3);assert.equal(pageGroups[0].screenshot,'last.png');
+  assert.deepEqual(pageGroups[0].stepIds,['a','b']);
+  assert.equal(latestSession.steps[0].images.screen,'first.png');
   assert.equal(policy.linkAppearance({menu:true}),'menu');
   assert.equal(policy.linkAppearance({classes:'btn btn-primary'}),'button');
   assert.equal(policy.linkAppearance({padding:8,background:'rgb(20, 30, 40)',border:0}),'button');

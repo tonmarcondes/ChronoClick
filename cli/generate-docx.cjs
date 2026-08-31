@@ -4,6 +4,7 @@ const path = require("path");
 const sharp = require("sharp");
 const JSZip = require("jszip");
 const placeMarkers = require("./marker-layout.cjs");
+const { latestPageGroups } = require("./page-groups.cjs");
 require("../extension/recording-policy.js");
 const {
   AlignmentType, BorderStyle, Document, Footer, Header, ImageRun, PageNumber,
@@ -34,17 +35,7 @@ if (config.recording?.skipInitialOriginPages !== false) {
 }
 const documentTitle = ChronoPolicy.documentTitle(session);
 // Rebuild the presentation only; original captures and steps stay untouched.
-if (config.recording?.separateScreens === false) {
-  const groups = [];
-  for (const step of session.steps || []) {
-    const source = session.groups?.find(group => group.id === step.groupId);
-    const last = groups.at(-1);
-    if (ChronoPolicy.canGroup(last, step, source?.signature, config)) {
-      last.stepIds.push(step.id); last.lastTimestamp = step.timestamp;
-    } else groups.push({ id: step.id, page: step.page, screenshot: step.images?.screen || source?.screenshot, signature: source?.signature, stepIds: [step.id], lastTimestamp: step.timestamp });
-  }
-  session.groups = groups;
-}
+if (config.recording?.separateScreens === false) session.groups = latestPageGroups(session);
 const theme = config.theme || {};
 const configuredLinkColor = theme.linkColor || "0563C1";
 if (cssThemePath) applyCssTheme(theme, path.resolve(cssThemePath));
@@ -293,17 +284,21 @@ async function patchPackage(buffer) {
       const token = `CHRONOMARKER_${sectionNumber}_${Date.now()}`;
       const page = group.page || steps[0].page;
       const sizePt = Number(theme.markerSizePt || config.markers?.sizePt || 18), imageWidthPt = size.width * .75, imageHeightPt = size.height * .75, leftBasePt = (468 - imageWidthPt) / 2;
+      const unavailableMarkers = [];
       const markerSteps = steps.flatMap(step => {
         if (!["click", "double-click", "right-click", "observation", "typing", "select", "toggle", "change"].includes(step.action) || !step.component?.role || step.component.role === "page") return [];
-        const r = step.rect;
+        const isEarlierCapture = group.latestStepId && group.latestStepId !== step.id;
+        const r = isEarlierCapture ? group.markerRects[step.component.selector] : step.rect;
+        if (isEarlierCapture && !r) { unavailableMarkers.push(step.sequence); return []; }
         const visible = r && r.width > 0 && r.height > 0 && r.x < page.viewportWidth && r.y < page.viewportHeight && r.x+r.width > 0 && r.y+r.height > 0;
-        const point = step.click || (visible ? { x: (Math.max(0,r.x)+Math.min(page.viewportWidth,r.x+r.width))/2, y: (Math.max(0,r.y)+Math.min(page.viewportHeight,r.y+r.height))/2 } : null);
+        const point = (!isEarlierCapture && step.click) || (visible ? { x: (Math.max(0,r.x)+Math.min(page.viewportWidth,r.x+r.width))/2, y: (Math.max(0,r.y)+Math.min(page.viewportHeight,r.y+r.height))/2 } : null);
         if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.y < 0 || point.x > page.viewportWidth || point.y > page.viewportHeight) return [];
         return [{ sequence: step.sequence, leftPt: leftBasePt + (point.x / page.viewportWidth) * imageWidthPt - sizePt / 2, topPt: (point.y / page.viewportHeight) * imageHeightPt - sizePt / 2 }];
       });
       markerPatches.push({ token, sizePt, items: placeMarkers(markerSteps, {left:leftBasePt,width:imageWidthPt,height:imageHeightPt,size:sizePt}) });
       children.push(new Paragraph({ style: "ChronoScreen", children: [new ImageRun({ data: screenshot, transformation: size, type: imageType(screenshot), altText: { title: `Tela ${sectionNumber}`, description: `Tela ${vars.pageName} com marcadores cronológicos editáveis`, name: `screen-${sectionNumber}` } }), new TextRun({ text: token, color: "FFFFFF", size: 2 })] }));
       if (config.showScreenshotCaption !== false) children.push(new Paragraph({ style: "ChronoCaption", children: [new TextRun(format(config.screenshotCaptionPattern || "Figura {sectionNumber}.{screenNumber} — {pageName}", vars))] }));
+      if (unavailableMarkers.length) children.push(new Paragraph({children:[new TextRun({text:`Passos ${unavailableMarkers.join(", ")}: posição não confirmada na última tela. Consulte a tabela e os microprints.`,italics:true,size:18,color:"667085"})]}));
     }
     if (config.showTableCaption !== false) children.push(new Paragraph({ style: "ChronoTableCaption", children: [new TextRun(format(config.tableCaptionPattern || "Tabela {sectionNumber}.{tableNumber} — Passos de {pageName}", vars))] }));
     children.push(await buildTable(steps));

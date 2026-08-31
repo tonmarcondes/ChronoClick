@@ -279,6 +279,14 @@
     if (message.type === "FLUSH_PENDING") { flushAll().then(() => { pendingScroll = null; respond({ ok: true }); }); return true; }
     if (message.type === "GET_CAPTURE_CONTEXT") {
       const info = pageInfo();
+      info.markerRects = {};
+      for (const selector of (message.selectors || []).slice(0,100)) {
+        try {
+          const element = document.querySelector(selector), rect = element?.getBoundingClientRect();
+          const style = element && getComputedStyle(element);
+          info.markerRects[selector] = rect && rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0 && rect.top < innerHeight && rect.left < innerWidth && style.visibility !== "hidden" && style.display !== "none" && style.opacity !== "0" ? {x:rect.x,y:rect.y,width:rect.width,height:rect.height} : null;
+        } catch { info.markerRects[selector] = null; }
+      }
       if (message.selector) { try { const rect = document.querySelector(message.selector)?.getBoundingClientRect(); info.rect = rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null; } catch { info.rect = null; } }
       respond(info);
     }

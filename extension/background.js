@@ -111,13 +111,18 @@ async function captureVisible(sender, payload) {
     const [active] = await chrome.tabs.query({ active: true, windowId: sender.tab.windowId });
     if (active?.id !== sender.tab.id) throw new Error("A aba de origem não está visível. Nenhum print de outra aba foi salvo.");
     const selector = payload.noMicroprint || payload.action === "highlight-text" ? null : payload.component?.selector;
-    const actual = await chrome.tabs.sendMessage(sender.tab.id, { type: "GET_CAPTURE_CONTEXT", selector }, { frameId: sender.frameId || 0 });
+    const selectors = [...new Set(session.steps.filter(step => step.page?.url === payload.page.url).map(step => step.component?.selector).filter(Boolean))].slice(-100);
+    const actual = await chrome.tabs.sendMessage(sender.tab.id, { type: "GET_CAPTURE_CONTEXT", selector, selectors }, { frameId: sender.frameId || 0 });
     ChronoPolicy.validate(payload.page, actual);
     if (selector && payload.rect && (!actual.rect || ["x", "y", "width", "height"].some(key => Math.abs(payload.rect[key] - actual.rect[key]) > 2))) throw new Error("O componente mudou de posição antes do print. Repita a interação.");
+    return actual;
   };
-  if (session.config.recording.validateCapture) await verify();
+  const before = session.config.recording.validateCapture ? await verify() : null;
   const result = await chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: "png" }); lastCaptureAt = Date.now();
-  if (session.config.recording.validateCapture) await verify();
+  if (session.config.recording.validateCapture) {
+    const after = await verify();
+    payload.markerRects = Object.fromEntries(Object.entries(after.markerRects || {}).filter(([selector, rect]) => rect && before.markerRects?.[selector] && ["x","y","width","height"].every(key => Math.abs(rect[key]-before.markerRects[selector][key]) <= 2)));
+  }
   return result;
 }
 async function blobToDataUrl(blob) {
