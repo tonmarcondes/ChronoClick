@@ -7,8 +7,15 @@ window.chrome = {
       if (message.type === "GET_STATE")
         return { state: "recording", recording: { pageViews: false } };
       if (message.type === "RECORD_EVENT") {
+        const target = document.querySelector(message.payload.component.selector);
+        const rect = target?.getBoundingClientRect();
+        const url = location.href;
+        await new Promise((resolve) => setTimeout(resolve, 650));
+        const after = target?.getBoundingClientRect();
+        const stable = url === location.href && rect?.x === after?.x && rect?.y === after?.y;
         const li = document.createElement("li");
         li.textContent = JSON.stringify(message.payload);
+        li.dataset.captureStable = String(stable);
         document.querySelector("#events").append(li);
         return { ok: true };
       }

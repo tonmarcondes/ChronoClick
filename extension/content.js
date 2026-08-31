@@ -8,7 +8,31 @@
   const documentToken = crypto.randomUUID();
   const dirtyFields = new Map(),
     pendingSends = new Set();
-  const linkCaptures = new WeakMap();
+  const replayedClicks = new WeakSet();
+
+  // File pickers, new tabs and downloads need the browser's trusted user activation.
+  function guardedTarget(event) {
+    if (
+      !options.delayLinkNavigation ||
+      event.button !== 0 ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return null;
+    const target = event.target.closest?.(
+      'a[href],button,input[type="submit"],input[type="button"],input[type="reset"],[role="button"],[role="tab"],[role="menuitem"]',
+    );
+    if (
+      !target ||
+      target.hasAttribute("download") ||
+      (target.target && target.target !== "_self") ||
+      target.matches('[data-chrono-recorder-ui],input[type="file"]')
+    )
+      return null;
+    return target;
+  }
   let pendingScroll = null;
   const scrollPositions = new WeakMap();
   let observeNext = false;
@@ -285,41 +309,55 @@
       }
       const interactive = event.target.closest?.(interactiveSelector);
       if (!interactive) return;
+      if (guardedTarget(event)) return;
       const action =
         event.button === 2 ? "right-click" : event.detail >= 2 ? "double-click" : "click";
-      const captured = record(action, interactive, {
+      record(action, interactive, {
         click: { x: event.clientX, y: event.clientY, button: event.button },
       });
-      if (interactive.matches("a[href]")) linkCaptures.set(interactive, captured);
     },
     true,
   );
 
-  document.addEventListener("click", (event) => {
-    const anchor = event.target.closest?.("a[href]");
-    if (
-      !anchor ||
-      state !== "recording" ||
-      !options.delayLinkNavigation ||
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey ||
-      event.altKey ||
-      anchor.hasAttribute("download") ||
-      (anchor.target && anchor.target !== "_self")
-    )
-      return;
-    const url = new URL(anchor.href, location.href);
-    if (!/^https?:$/.test(url.protocol) || url.href.split("#")[0] === location.href.split("#")[0])
-      return;
-    const captured = linkCaptures.get(anchor);
-    if (!captured) return;
-    event.preventDefault();
-    linkCaptures.delete(anchor);
-    captured.finally(() => location.assign(url.href));
-  });
+  // Keep double-click handlers behind the same capture barrier.
+  for (const type of ["click", "dblclick"])
+    window.addEventListener(
+      type,
+      (event) => {
+        if (replayedClicks.has(event) || state !== "recording" || event.defaultPrevented) return;
+        const target = guardedTarget(event);
+        if (!target) return;
+        // Capture before target handlers (including SPA routers) can change the screen.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const originalTarget = event.target;
+        const replay = new MouseEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+          view: window,
+          detail: event.detail,
+          button: event.button,
+          buttons: event.buttons,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          screenX: event.screenX,
+          screenY: event.screenY,
+        });
+        replayedClicks.add(replay);
+        const captured =
+          type === "dblclick"
+            ? Promise.all([...pendingSends])
+            : record(event.detail >= 2 ? "double-click" : "click", target, {
+                click: { x: event.clientX, y: event.clientY, button: event.button },
+              });
+        // Replay the actual click, not location.assign: keep routers and form handlers intact.
+        Promise.resolve(captured).finally(() => {
+          if (originalTarget.isConnected) originalTarget.dispatchEvent(replay);
+        });
+      },
+      true,
+    );
 
   document.addEventListener(
     "change",
@@ -385,7 +423,11 @@
     (event) => {
       if (state !== "recording" || event.isComposing) return;
       if (event.key === "Enter" && event.target.matches("input")) flushTyping(event.target);
-      else if (["Enter", " "].includes(event.key) && event.target.matches("button,a,[role=button]"))
+      else if (
+        ["Enter", " "].includes(event.key) &&
+        event.target.matches("button,a,[role=button]") &&
+        !guardedTarget({ target: event.target, button: 0 })
+      )
         record("click", event.target);
     },
     true,
