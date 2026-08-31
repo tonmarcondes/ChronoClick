@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 0.9.1
+
+- Alterar a aparência da borda passa a ativá-la, com orientação para gerar o DOCX novamente.
+- Links e botões aguardam a captura antes dos handlers da página, preservando a navegação SPA e evitando prints após a mudança provocada pelo clique.
+- Testes de regressão e página de teste com mudança imediata de posição e rota.
+
 ## 0.9.0
 
 - Última captura por visita à página, com todos os passos na tabela.

@@ -1,6 +1,6 @@
 {
   "name": "chronoclick-recorder",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -9,7 +9,7 @@
   "scripts": {
     "format": "prettier --write \"{extension,cli,native-host,tests}/**/*.{js,cjs,html,css}\" package.json",
     "format:check": "prettier --check \"{extension,cli,native-host,tests}/**/*.{js,cjs,html,css}\" package.json",
-    "test": "node tests/recording.test.cjs && node tests/export-ui.test.cjs && node tests/start-session.test.cjs",
+    "test": "node tests/recording.test.cjs && node tests/export-ui.test.cjs && node tests/start-session.test.cjs && node tests/capture-gate.test.cjs",
     "test:integration": "node native-host/smoke-test.cjs",
     "test:ui": "node tests/ui-server.cjs",
     "generate": "node cli/generate-docx.cjs",

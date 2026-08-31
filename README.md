@@ -4,7 +4,7 @@
 
 O ChronoClick registra interações com páginas web, salva capturas e microprints dos componentes e organiza os passos em um documento `.docx`. O processamento é local: cada projeto fica em uma pasta, sem banco de dados ou serviço de armazenamento externo.
 
-**Versão:** 0.9.0 · **Plataforma dos instaladores:** macOS · **Licença:** [Apache 2.0](LICENSE)
+**Versão:** 0.9.1 · **Plataforma dos instaladores:** macOS · **Licença:** [Apache 2.0](LICENSE)
 
 [Instalação](#instalação) · [Como usar](#como-usar) · [Configurações](#configurações) · [Desenvolvimento](#desenvolvimento) · [Limitações](#limitações)
 
@@ -78,6 +78,8 @@ Para posicionar os cronocliques anteriores, o gravador verifica os componentes n
 
 Os arquivos originais de cada evento permanecem no projeto. Em **Print no Word**, é possível escolher **Um para cada evento mantido** para uma revisão individual. Gravações antigas podem não ter o mapa de posições necessário para todos os marcadores da última tela.
 
+Com **Links e botões: aguardar print antes da ação** ativado, o clique aguarda a captura antes de chegar aos comandos da página, inclusive em rotas SPA. Há uma breve espera: o navegador limita a frequência dos prints. Downloads e cliques com modificadores não são adiados. Sites que exigem eventos `isTrusted`, abrem seletores de arquivo ou alteram a interface no `pointerdown` podem precisar dessa opção desativada; nesses casos a captura anterior à mudança não é garantida. Capturas antigas que falharam precisam ser refeitas.
+
 ### URL base
 
 A entrada automática de URL é registrada uma vez por site visitado, considerando protocolo, domínio e porta. Pastas, rotas, parâmetros e fragmentos não geram novas entradas desse tipo. As interações nessas páginas continuam sendo capturadas.
@@ -116,6 +118,8 @@ Texto selecionado: Certifique-se que {texto-iluminado}.
 No título geral, os dados são os da primeira página ou do primeiro passo. Nos textos das ações, pertencem ao passo correspondente. Em cliques, `{value}` usa o valor disponível ou o nome do componente; na digitação, usa o texto capturado.
 
 A pasta de destino aceita `~`, `$VAR`, `${VAR}` e `%VAR%`. As variáveis devem existir no ambiente do host local. Não confunda variáveis de ambiente com os marcadores dos textos do documento.
+
+Ao ajustar cor, espessura ou tipo da borda, **Mostrar borda no DOCX** é ativado automaticamente. Para retirar a borda, desmarque essa opção. Salve e gere o documento novamente: o arquivo já exportado não muda sozinho.
 
 ## Arquivos do projeto
 
