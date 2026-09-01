@@ -155,7 +155,7 @@ function actionTemplateKey(step) {
 function autoDescription(step) {
   const defaults = ChronoDefaults.actionTexts;
   const templates = { ...defaults, ...(config.actionTexts || {}) };
-  return format(templates[actionTemplateKey(step)] || templates.generic, {
+  const description = format(templates[actionTemplateKey(step)] || templates.generic, {
     name: step.component?.name || "componente",
     value: ChronoPolicy.actionValue(step),
     url: step.page?.url || "",
@@ -165,6 +165,24 @@ function autoDescription(step) {
     "texto-iluminado": step.selectedText || step.component?.name || "texto",
     "highlighted-text": step.selectedText || step.component?.name || "texto",
   });
+  if (!step.scrollBefore) return description;
+  return format(templates["scroll-combined"] || "Role a página e {action}", {
+    action: description ? description[0].toLowerCase() + description.slice(1) : "continue.",
+    scrollX: step.scrollBefore.scrollX || 0,
+    scrollY: step.scrollBefore.scrollY || 0,
+  });
+}
+
+function layoutFor(step) {
+  for (const line of String(config.actionLayoutRules || "").split(/\r?\n/)) {
+    const [pattern, before, after, tabs] = line.split("|").map((item) => item.trim());
+    if (!pattern) continue;
+    try {
+      if (new RegExp(pattern).test(step.action || ""))
+        return { before: Number(before || 0), after: Number(after || 0), tabs: Number(tabs || 0) };
+    } catch {}
+  }
+  return { before: 0, after: 0, tabs: 0 };
 }
 
 function textSource(source, step) {
@@ -198,6 +216,7 @@ async function cellContent(column, step) {
   const runs = [];
   for (const source of sources) {
     if (source === "microprint") {
+      if (step.action === "typing" || step.noMicroprint) continue;
       if (step.component?.role === "link" && step.component?.textOnlyLink) continue;
       const buffer = dataBuffer(step.images?.microprint);
       if (buffer) {
@@ -267,7 +286,56 @@ async function cellContent(column, step) {
       );
     }
   }
-  return [new Paragraph({ style: "ChronoStepDescription", alignment, children: runs })];
+  const layout = layoutFor(step);
+  if (layout.tabs) runs.unshift(new TextRun("\t".repeat(layout.tabs)));
+  return [
+    new Paragraph({
+      style: "ChronoStepDescription",
+      alignment,
+      spacing: { before: layout.before * 240, after: layout.after * 240 },
+      children: runs,
+    }),
+  ];
+}
+
+async function buildTextSteps(steps) {
+  const paragraphs = [];
+  for (const step of steps) {
+    const layout = layoutFor(step),
+      children = [new TextRun({ text: autoDescription(step), bold: false })];
+    const micro =
+      step.action === "typing" || step.noMicroprint ? null : dataBuffer(step.images?.microprint);
+    if (micro) {
+      const size = await imageSizeByHeight(
+        micro,
+        Number(config.microprint?.heightPt || 11),
+        Number(config.microprint?.maxWidthPt || 90),
+        config.microprint?.preserveAspectRatio !== false,
+      );
+      children.push(
+        new TextRun("  "),
+        new ImageRun({
+          data: micro,
+          transformation: size,
+          type: imageType(micro),
+          altText: {
+            title: `Microprint do passo ${step.sequence}`,
+            description: step.component?.name || "Componente",
+            name: `step-${step.sequence}-microprint`,
+          },
+        }),
+      );
+    }
+    paragraphs.push(
+      new Paragraph({
+        style: "ChronoStepDescription",
+        numbering: { reference: "chrono-text-steps", level: 0 },
+        spacing: { before: layout.before * 240, after: Math.max(120, layout.after * 240) },
+        children: [new TextRun("\t".repeat(layout.tabs)), ...children],
+      }),
+    );
+  }
+  return paragraphs;
 }
 
 async function buildTable(steps) {
@@ -468,6 +536,13 @@ async function patchPackage(buffer) {
     );
     const screenshot = dataBuffer(group.screenshot || steps[0]?.images?.screen);
     if (screenshot) {
+      const observationText = [...steps]
+        .reverse()
+        .find((step) => step.observationText)?.observationText;
+      if (observationText)
+        children.push(
+          new Paragraph({ style: "ChronoObservation", children: [new TextRun(observationText)] }),
+        );
       const size = await imageSize(screenshot, 620, 470);
       const token = `CHRONOMARKER_${sectionNumber}_${Date.now()}`;
       const page = group.page || steps[0].page;
@@ -589,7 +664,7 @@ async function patchPackage(buffer) {
           }),
         );
     }
-    if (config.showTableCaption !== false)
+    if (config.stepPresentation !== "text" && config.showTableCaption !== false)
       children.push(
         new Paragraph({
           style: "ChronoTableCaption",
@@ -604,7 +679,8 @@ async function patchPackage(buffer) {
           ],
         }),
       );
-    children.push(await buildTable(steps));
+    if (config.stepPresentation === "text") children.push(...(await buildTextSteps(steps)));
+    else children.push(await buildTable(steps));
     children.push(new Paragraph({ style: "ChronoAfterTable" }));
   }
 
@@ -641,6 +717,25 @@ async function patchPackage(buffer) {
           ],
         },
         { reference: "chrono-steps-left", levels: [numberingLevel(AlignmentType.LEFT, 0)] },
+        {
+          reference: "chrono-text-steps",
+          levels: [
+            {
+              level: 0,
+              format: "decimal",
+              text: "%1.",
+              suffix: "tab",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 360, hanging: 240 },
+                  spacing: { before: 40, after: 40 },
+                },
+                run: { bold: true, size: 22, font },
+              },
+            },
+          ],
+        },
         {
           reference: "chrono-steps-center",
           levels: [
@@ -686,6 +781,10 @@ async function patchPackage(buffer) {
             spacing: { before: (theme.screenBefore || 6) * 20, after: 60 },
             keepNext: true,
           },
+        }),
+        paragraphStyle("ChronoObservation", "ChronoClick - Explicação da Observação", {
+          run: { font, size: (theme.bodyFontSize || 11) * 2, color: "202124" },
+          paragraph: { spacing: { before: 160, after: 100 }, keepNext: true },
         }),
         paragraphStyle("ChronoCaption", "ChronoClick - Legenda do Print", {
           run: { font, size: 18, color: "5B6472", italics: true },

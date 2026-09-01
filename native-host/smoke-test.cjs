@@ -449,6 +449,27 @@ function dataUrl(file, mime) {
     throw new Error("Sumário ou numeração dinâmica dos títulos ausente.");
   if (!cleanSettingsXml.includes("updateFields"))
     throw new Error("O Word não foi orientado a atualizar sumário e numeração.");
+  savedSession.config.stepPresentation = "text";
+  savedSession.config.actionLayoutRules = "^observation$ | 1 | 1 | 1";
+  savedSession.steps[0].action = "observation";
+  savedSession.steps[0].observationText = "Confira cuidadosamente a área selecionada.";
+  savedSession.steps.at(-1).scrollBefore = { scrollY: 640, selector: "body" };
+  await call({ command: "saveSession", projectPath, session: savedSession });
+  const textDocument = await call({
+    command: "generateDocx",
+    projectPath,
+    fileName: "text-mode",
+    allowPartial: true,
+  });
+  const textXml = spawnSync("unzip", ["-p", textDocument.output, "word/document.xml"], {
+    encoding: "utf8",
+  }).stdout;
+  if (
+    textXml.includes("<w:tbl>") ||
+    !textXml.includes("Confira cuidadosamente") ||
+    !textXml.includes("Role a página e")
+  )
+    throw new Error("Modo texto, explicação da observação ou scroll combinado ausente.");
   if (
     partialXml.includes('w:pStyle w:val="ChronoCaption"') ||
     partialXml.includes('w:pStyle w:val="ChronoTableCaption"')

@@ -98,6 +98,12 @@
           >
           <label><input id="showTableCaption" type="checkbox" /> Mostrar legenda das tabelas</label>
           <label><input id="showTableOfContents" type="checkbox" /> Inserir sumário</label>
+          <label class="field"
+            >Apresentação dos passos<select id="stepPresentation">
+              <option value="table">Tabela</option>
+              <option value="text">Texto fora da tabela</option>
+            </select></label
+          >
           <label
             ><input id="showCaptureErrorsInDocx" type="checkbox" /> Mostrar erros de captura no
             DOCX</label
@@ -188,12 +194,34 @@
               <option value="false">Não</option>
             </select></label
           >
+          <label class="field"
+            >Opacidade ao selecionar observação (%)<input
+              data-recording="observationOverlayOpacity"
+              type="number"
+              min="0"
+              max="80"
+          /></label>
         </div>
         <p class="muted">
           Pause ou finalize antes de salvar alterações. As regras valem para novas interações. Texto
           digitado e prints podem conter dados pessoais: revise antes de compartilhar. Senhas são
           excluídas do texto, mas imagens não são censuradas automaticamente.
         </p>
+      </section>
+
+      <section class="card">
+        <h2>Espaçamento por ação</h2>
+        <p class="muted">
+          Uma regra por linha: <code>regex | linhas antes | linhas depois | tabs</code>. Exemplo:
+          <code>^(observation|page-view)$ | 1 | 1 | 0</code>.
+        </p>
+        <label class="field"
+          >Regras de layout<textarea
+            id="actionLayoutRules"
+            rows="6"
+            placeholder="^observation$ | 1 | 1 | 0"
+          ></textarea>
+        </label>
       </section>
 
       <section class="card">
@@ -262,6 +290,9 @@
           <label class="field">Texto selecionado<input data-action-text="highlight-text" /></label>
           <label class="field">Entrada em nova página<input data-action-text="page-view" /></label>
           <label class="field">Rolagem da página<input data-action-text="scroll" /></label>
+          <label class="field"
+            >Rolagem unida à ação<input data-action-text="scroll-combined"
+          /></label>
         </div>
       </section>
 

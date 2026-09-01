@@ -1,6 +1,6 @@
 // Shared defaults for recording, review, and document generation.
 globalThis.ChronoDefaults = {
-  configVersion: 8,
+  configVersion: 9,
   recording: { ...ChronoPolicy.defaults },
   projectRoot: "${HOME}/sistemas/cronoPrint",
   documentTitle: "Procedimento gravado",
@@ -11,6 +11,8 @@ globalThis.ChronoDefaults = {
   showTableCaption: true,
   showCaptureErrorsInDocx: true,
   showTableOfContents: false,
+  stepPresentation: "table",
+  actionLayoutRules: "",
   groupWindowMs: 0,
   columns: [
     { key: "step", title: "STEP", source: ["sequence"], width: 12, alignment: "center" },
@@ -39,6 +41,7 @@ globalThis.ChronoDefaults = {
     "highlight-text": "Certifique-se que {texto-iluminado}.",
     "page-view": "Insira a url {url} e acesse a página {pageName}",
     scroll: "Role a página até a posição {scrollY}.",
+    "scroll-combined": "Role a página e {action}",
     generic: "Interaja com {name}.",
   },
   microprint: { heightPt: 11, maxWidthPt: 90, preserveAspectRatio: true },
