@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.10.0
+
+- Incluí opções para sumário e exibição dos erros de captura no DOCX.
+- Transformei a numeração dos títulos em uma lista automática do Word.
+- Limpei eventos, avisos e links antigos quando uma nova gravação começa.
+- Organizei as configurações em áreas recolhíveis, com navegação mais clara e responsiva.
+
 ## 0.9.1
 
 - Alterar a aparência da borda passa a ativá-la, com orientação para gerar o DOCX novamente.

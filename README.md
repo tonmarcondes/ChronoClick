@@ -4,7 +4,7 @@
 
 O ChronoClick registra interações com páginas web, salva capturas e microprints dos componentes e organiza os passos em um documento `.docx`. O processamento é local: cada projeto fica em uma pasta, sem banco de dados ou serviço de armazenamento externo.
 
-**Versão:** 0.9.1 · **Plataforma dos instaladores:** macOS · **Licença:** [Apache 2.0](LICENSE)
+**Versão:** 0.10.0 · **Plataforma dos instaladores:** macOS · **Licença:** [Apache 2.0](LICENSE)
 
 [Instalação](#instalação) · [Como usar](#como-usar) · [Configurações](#configurações) · [Desenvolvimento](#desenvolvimento) · [Limitações](#limitações)
 
@@ -90,7 +90,7 @@ Essa regra pode ser desativada em **Evitar entradas repetidas em cada site**.
 
 | Grupo | Opções principais |
 | --- | --- |
-| Documento | Título, legendas, exibição das legendas e pasta de destino |
+| Documento | Título, sumário, legendas, avisos de captura e pasta de destino |
 | Gravação | Scroll associado a ações, consolidação de repetições, término da digitação e validação de captura |
 | Imagens | Formato, qualidade, dimensões máximas e margem dos microprints |
 | Textos automáticos | Frases para cada tipo de ação e suas variáveis |
@@ -99,6 +99,10 @@ Essa regra pode ser desativada em **Evitar entradas repetidas em cada site**.
 | Borda e sombra | Cor, espessura, linha contínua/tracejada/pontilhada/dupla, opacidade, desfoque e distância |
 
 As legendas das imagens e das tabelas podem ser ativadas separadamente. As opções de tamanho e qualidade valem para novas capturas; não redimensionam retroativamente os arquivos salvos. Bordas, sombras e apresentação no Word são reaplicadas ao gerar o documento.
+
+Os títulos usam numeração automática do Word quando `{sectionNumber}` aparece no início do padrão. Assim, excluir uma seção completa reorganiza as seguintes. A opção **Inserir sumário** cria o índice a partir desses títulos. Se o Word não atualizar os campos ao abrir, use `Ctrl+A` e `F9` no Windows ou selecione todo o documento e atualize os campos no macOS.
+
+Mesmo com **Mostrar erros de captura no DOCX** desativado, o ChronoClick continua avisando sobre capturas incompletas antes da exportação. A opção controla somente a presença do aviso dentro do documento.
 
 O arquivo `theme.css` permite ajustar os tokens `--chrono-*` da apresentação. Nos links, o campo **Usar cor dos links definida em** escolhe explicitamente entre a configuração visual e o CSS. Nos demais tokens de tema, os valores presentes no CSS têm precedência sobre as opções equivalentes.
 
