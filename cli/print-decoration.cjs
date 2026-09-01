@@ -18,7 +18,7 @@ function decoratePrints(xml, options = {}) {
       ? `<a:effectLst><a:outerShdw blurRad="${Math.round(number(options.blurPt, 4, 30) * EMUS_PER_POINT)}" dist="${Math.round(number(options.offsetPt, 3, 30) * EMUS_PER_POINT)}" dir="2700000" algn="ctr" rotWithShape="0"><a:srgbClr val="${color(options.shadowColor, "000000")}"><a:alpha val="${Math.round(number(options.opacity, 25, 100) * 1000)}"/></a:srgbClr></a:outerShdw></a:effectLst>`
       : "";
   return xml.replace(/<w:drawing>[\s\S]*?<\/w:drawing>/g, (drawing) =>
-    /name="screen-\d+"/.test(drawing)
+    /name="screen-(?:observation-)?\d+(?:-\d+)?"/.test(drawing)
       ? drawing.replace("</pic:spPr>", line + shadow + "</pic:spPr>")
       : drawing,
   );

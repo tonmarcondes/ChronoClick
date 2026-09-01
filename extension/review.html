@@ -213,13 +213,14 @@
         <h2>Espaçamento por ação</h2>
         <p class="muted">
           Uma regra por linha: <code>regex | linhas antes | linhas depois | tabs</code>. Exemplo:
-          <code>^(observation|page-view)$ | 1 | 1 | 0</code>.
+          <code>^click$ | 1 | 1 | 0</code>. Para os blocos do documento, use <code>^print$</code>,
+          <code>^observation-print$</code> ou <code>^table$</code>.
         </p>
         <label class="field"
           >Regras de layout<textarea
             id="actionLayoutRules"
             rows="6"
-            placeholder="^observation$ | 1 | 1 | 0"
+            placeholder="^print$ | 1 | 1 | 0&#10;^table$ | 2 | 1 | 0"
           ></textarea>
         </label>
       </section>

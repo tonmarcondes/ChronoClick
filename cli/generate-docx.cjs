@@ -173,16 +173,33 @@ function autoDescription(step) {
   });
 }
 
-function layoutFor(step) {
+function layoutForValue(value) {
   for (const line of String(config.actionLayoutRules || "").split(/\r?\n/)) {
     const [pattern, before, after, tabs] = line.split("|").map((item) => item.trim());
     if (!pattern) continue;
     try {
-      if (new RegExp(pattern).test(step.action || ""))
-        return { before: Number(before || 0), after: Number(after || 0), tabs: Number(tabs || 0) };
+      if (new RegExp(pattern).test(value || ""))
+        return {
+          before: Number(before || 0),
+          after: Number(after || 0),
+          tabs: Number(tabs || 0),
+          matched: true,
+        };
     } catch {}
   }
-  return { before: 0, after: 0, tabs: 0 };
+  return { before: 0, after: 0, tabs: 0, matched: false };
+}
+
+function layoutFor(step) {
+  return layoutForValue(step.action);
+}
+
+function blockSpacing(target, defaultBefore = 0, defaultAfter = 0) {
+  const layout = layoutForValue(target);
+  return {
+    before: layout.matched ? layout.before * 240 : defaultBefore,
+    after: layout.matched ? layout.after * 240 : defaultAfter,
+  };
 }
 
 function textSource(source, step) {
@@ -522,6 +539,8 @@ async function patchPackage(buffer) {
       tableNumber: 1,
       pageName: group.page?.pageName || steps[0].page?.pageName || "Página",
     };
+    const observationSteps = steps.filter((step) => step.action === "observation");
+    const documentSteps = steps.filter((step) => step.action !== "observation");
     children.push(
       new Paragraph({
         style: "ChronoSectionTitle",
@@ -534,15 +553,39 @@ async function patchPackage(buffer) {
         children: sectionTitleChildren(config.sectionTitlePattern, vars),
       }),
     );
-    const screenshot = dataBuffer(group.screenshot || steps[0]?.images?.screen);
-    if (screenshot) {
-      const observationText = [...steps]
-        .reverse()
-        .find((step) => step.observationText)?.observationText;
-      if (observationText)
+    for (const [observationIndex, observation] of observationSteps.entries()) {
+      if (observation.observationText)
         children.push(
-          new Paragraph({ style: "ChronoObservation", children: [new TextRun(observationText)] }),
+          new Paragraph({
+            style: "ChronoObservation",
+            children: [new TextRun(observation.observationText)],
+          }),
         );
+      const observationPrint = dataBuffer(observation.images?.microprint);
+      if (observationPrint) {
+        const observationSize = await imageSize(observationPrint, 620, 470);
+        children.push(
+          new Paragraph({
+            style: "ChronoObservationPrint",
+            spacing: blockSpacing("observation-print", 120, 240),
+            children: [
+              new ImageRun({
+                data: observationPrint,
+                transformation: observationSize,
+                type: imageType(observationPrint),
+                altText: {
+                  title: `Observação ${sectionNumber}.${observationIndex + 1}`,
+                  description: observation.observationText || "Área selecionada para observação",
+                  name: `screen-observation-${sectionNumber}-${observationIndex + 1}`,
+                },
+              }),
+            ],
+          }),
+        );
+      }
+    }
+    const screenshot = dataBuffer(group.screenshot || documentSteps[0]?.images?.screen);
+    if (screenshot && documentSteps.length) {
       const size = await imageSize(screenshot, 620, 470);
       const token = `CHRONOMARKER_${sectionNumber}_${Date.now()}`;
       const page = group.page || steps[0].page;
@@ -551,13 +594,12 @@ async function patchPackage(buffer) {
         imageHeightPt = size.height * 0.75,
         leftBasePt = (468 - imageWidthPt) / 2;
       const unavailableMarkers = [];
-      const markerSteps = steps.flatMap((step) => {
+      const markerSteps = documentSteps.flatMap((step) => {
         if (
           ![
             "click",
             "double-click",
             "right-click",
-            "observation",
             "typing",
             "select",
             "toggle",
@@ -620,6 +662,7 @@ async function patchPackage(buffer) {
       children.push(
         new Paragraph({
           style: "ChronoScreen",
+          spacing: blockSpacing("print", (theme.screenBefore || 6) * 20, 60),
           children: [
             new ImageRun({
               data: screenshot,
@@ -664,7 +707,11 @@ async function patchPackage(buffer) {
           }),
         );
     }
-    if (config.stepPresentation !== "text" && config.showTableCaption !== false)
+    if (
+      documentSteps.length &&
+      config.stepPresentation !== "text" &&
+      config.showTableCaption !== false
+    )
       children.push(
         new Paragraph({
           style: "ChronoTableCaption",
@@ -679,9 +726,24 @@ async function patchPackage(buffer) {
           ],
         }),
       );
-    if (config.stepPresentation === "text") children.push(...(await buildTextSteps(steps)));
-    else children.push(await buildTable(steps));
-    children.push(new Paragraph({ style: "ChronoAfterTable" }));
+    if (documentSteps.length && config.stepPresentation === "text")
+      children.push(...(await buildTextSteps(documentSteps)));
+    else if (documentSteps.length) {
+      const tableSpacing = layoutForValue("table");
+      if (tableSpacing.before)
+        children.push(
+          new Paragraph({ spacing: { after: tableSpacing.before * 240 }, children: [] }),
+        );
+      children.push(await buildTable(documentSteps));
+      children.push(
+        new Paragraph({
+          style: "ChronoAfterTable",
+          spacing: {
+            after: tableSpacing.matched ? tableSpacing.after * 240 : (theme.tableAfter || 18) * 20,
+          },
+        }),
+      );
+    }
   }
 
   const stepWidth = stepColumnWidth();
@@ -785,6 +847,13 @@ async function patchPackage(buffer) {
         paragraphStyle("ChronoObservation", "ChronoClick - Explicação da Observação", {
           run: { font, size: (theme.bodyFontSize || 11) * 2, color: "202124" },
           paragraph: { spacing: { before: 160, after: 100 }, keepNext: true },
+        }),
+        paragraphStyle("ChronoObservationPrint", "ChronoClick - Print da Observação", {
+          paragraph: {
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 120, after: 240 },
+            keepNext: true,
+          },
         }),
         paragraphStyle("ChronoCaption", "ChronoClick - Legenda do Print", {
           run: { font, size: 18, color: "5B6472", italics: true },

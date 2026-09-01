@@ -449,11 +449,37 @@ function dataUrl(file, mime) {
     throw new Error("Sumário ou numeração dinâmica dos títulos ausente.");
   if (!cleanSettingsXml.includes("updateFields"))
     throw new Error("O Word não foi orientado a atualizar sumário e numeração.");
-  savedSession.config.stepPresentation = "text";
-  savedSession.config.actionLayoutRules = "^observation$ | 1 | 1 | 1";
+  savedSession.config.stepPresentation = "table";
+  savedSession.config.actionLayoutRules = [
+    "^observation-print$ | 2 | 1 | 0",
+    "^print$ | 1 | 1 | 0",
+    "^table$ | 2 | 1 | 0",
+  ].join("\n");
   savedSession.steps[0].action = "observation";
   savedSession.steps[0].observationText = "Confira cuidadosamente a área selecionada.";
   savedSession.steps.at(-1).scrollBefore = { scrollY: 640, selector: "body" };
+  await call({ command: "saveSession", projectPath, session: savedSession });
+  const observationDocument = await call({
+    command: "generateDocx",
+    projectPath,
+    fileName: "observation-mode",
+    allowPartial: true,
+  });
+  const observationXml = spawnSync(
+    "unzip",
+    ["-p", observationDocument.output, "word/document.xml"],
+    { encoding: "utf8" },
+  ).stdout;
+  const observationTables = observationXml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) || [];
+  if (
+    !observationXml.includes("Confira cuidadosamente") ||
+    !observationXml.includes('w:pStyle w:val="ChronoObservationPrint"') ||
+    observationTables.some((table) => table.includes("Confira cuidadosamente")) ||
+    !observationXml.includes('<w:spacing w:after="240" w:before="480"') ||
+    !observationXml.includes('<w:spacing w:after="480"')
+  )
+    throw new Error("Observação, espaçamento por bloco ou exclusão da tabela inválidos.");
+  savedSession.config.stepPresentation = "text";
   await call({ command: "saveSession", projectPath, session: savedSession });
   const textDocument = await call({
     command: "generateDocx",
