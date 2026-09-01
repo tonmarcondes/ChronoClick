@@ -1,6 +1,6 @@
 // Shared defaults for recording, review, and document generation.
 globalThis.ChronoDefaults = {
-  configVersion: 9,
+  configVersion: 10,
   recording: { ...ChronoPolicy.defaults },
   projectRoot: "${HOME}/sistemas/cronoPrint",
   documentTitle: "Procedimento gravado",

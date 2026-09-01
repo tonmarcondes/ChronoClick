@@ -107,7 +107,7 @@ Mesmo com **Mostrar erros de captura no DOCX** desativado, o ChronoClick continu
 
 **Marcar observação** escurece a página, permite arrastar um retângulo e pedir uma explicação. A área selecionada vira o microprint e o texto aparece imediatamente acima do print principal. A opacidade da seleção é configurável.
 
-Em **Apresentação dos passos**, escolha tabela ou parágrafos numerados. As regras de espaçamento usam uma linha por expressão: `regex | linhas antes | linhas depois | tabs`. O último scroll associado não cria outro passo: sua frase é unida à ação seguinte. Digitação continua capturando a tela, mas não gera microprint do campo.
+Em **Apresentação dos passos**, escolha tabela ou parágrafos numerados. As regras de espaçamento usam uma linha por expressão: `regex | linhas antes | linhas depois | tabs`. Além dos nomes das ações, use `^print$`, `^observation-print$` e `^table$` para controlar os espaços antes e depois desses blocos. A observação permanece como texto seguido da área selecionada e não cria uma linha na tabela. O último scroll associado não cria outro passo: sua frase é unida à ação seguinte. Digitação continua capturando a tela, mas não gera microprint do campo.
 
 O arquivo `theme.css` permite ajustar os tokens `--chrono-*` da apresentação. Nos links, o campo **Usar cor dos links definida em** escolhe explicitamente entre a configuração visual e o CSS. Nos demais tokens de tema, os valores presentes no CSS têm precedência sobre as opções equivalentes.
 

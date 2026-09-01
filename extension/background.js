@@ -79,7 +79,7 @@ function migrateConfig(saved = {}) {
       : saved.columns || DEFAULT_CONFIG.columns;
   const migrated = {
     ...saved,
-    configVersion: 9,
+    configVersion: 10,
     columns: legacyColumns.map((column, index) => ({
       ...column,
       alignment: column.alignment || (index === 0 ? "center" : "left"),

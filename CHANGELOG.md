@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 0.11.1
+
+- Permiti usar regex para controlar o espaço antes e depois dos prints e das tabelas.
+- Mantive a observação como texto acima da área selecionada, sem criar uma linha na tabela.
+
 ## 0.11.0
 
 - Transformei a observação em uma seleção de área com explicação e microprint.
