@@ -15,14 +15,18 @@ const {
   Document,
   Footer,
   Header,
+  HeadingLevel,
   ImageRun,
+  PageBreak,
   PageNumber,
   Packer,
   Paragraph,
   ShadingType,
+  SimpleField,
   Table,
   TableCell,
   TableRow,
+  TableOfContents,
   TextRun,
   VerticalAlign,
   WidthType,
@@ -69,6 +73,23 @@ function dataBuffer(value) {
 
 function format(pattern, vars) {
   return String(pattern || "").replace(/\{([^}]+)\}/g, (_, key) => vars[key] ?? "");
+}
+
+function sectionTitleChildren(pattern, vars) {
+  const text = String(pattern || "{sectionNumber}. {pageName}");
+  if (/^\s*\{sectionNumber\}/.test(text)) {
+    const formatted = format(text.replace("{sectionNumber}", ""), vars);
+    return formatted ? [new TextRun(formatted)] : [];
+  }
+  const parts = text.split("{sectionNumber}");
+  return parts.flatMap((part, index) => {
+    const children = [];
+    if (index)
+      children.push(new SimpleField("SEQ ChronoSection \\* ARABIC", String(vars.sectionNumber)));
+    const formatted = format(part, vars);
+    if (formatted) children.push(new TextRun(formatted));
+    return children;
+  });
 }
 
 async function imageSize(buffer, maxWidth, maxHeight) {
@@ -364,7 +385,7 @@ async function patchPackage(buffer) {
   children.push(
     new Paragraph({ style: "ChronoDocumentTitle", children: [new TextRun(documentTitle)] }),
   );
-  if (session.captureFailures?.length) {
+  if (session.captureFailures?.length && config.showCaptureErrorsInDocx !== false) {
     children.push(
       new Paragraph({
         children: [
@@ -389,6 +410,37 @@ async function patchPackage(buffer) {
       );
   }
 
+  if (config.showTableOfContents === true) {
+    let tocSection = 0;
+    const cachedEntries = (session.groups || []).flatMap((group) => {
+      const steps =
+        group.stepIds?.map((id) => session.steps.find((step) => step.id === id)).filter(Boolean) ||
+        session.steps.filter((step) => step.groupId === group.id);
+      if (!steps.length) return [];
+      tocSection++;
+      return [
+        {
+          title: format(config.sectionTitlePattern || "{sectionNumber}. {pageName}", {
+            sectionNumber: tocSection,
+            pageName: group.page?.pageName || steps[0].page?.pageName || "Página",
+          }),
+          level: 1,
+          // Initial value for readers that do not refresh fields; Word replaces it with the real page.
+          page: tocSection + 1,
+        },
+      ];
+    });
+    children.push(
+      new Paragraph({ style: "ChronoTocTitle", children: [new TextRun("Sumário")] }),
+      new TableOfContents("Sumário", {
+        hyperlink: true,
+        headingStyleRange: "1-1",
+        cachedEntries,
+      }),
+      new Paragraph({ children: [new PageBreak()] }),
+    );
+  }
+
   let sectionNumber = 0;
   for (const group of session.groups || []) {
     const steps =
@@ -405,9 +457,13 @@ async function patchPackage(buffer) {
     children.push(
       new Paragraph({
         style: "ChronoSectionTitle",
-        children: [
-          new TextRun(format(config.sectionTitlePattern || "{sectionNumber}. {pageName}", vars)),
-        ],
+        heading: HeadingLevel.HEADING_1,
+        ...(/^\s*\{sectionNumber\}/.test(
+          config.sectionTitlePattern || "{sectionNumber}. {pageName}",
+        )
+          ? { numbering: { reference: "chrono-sections", level: 0 } }
+          : {}),
+        children: sectionTitleChildren(config.sectionTitlePattern, vars),
       }),
     );
     const screenshot = dataBuffer(group.screenshot || steps[0]?.images?.screen);
@@ -568,8 +624,22 @@ async function patchPackage(buffer) {
     creator: "ChronoClick Recorder",
     title: documentTitle,
     description: "Procedimento gerado a partir de uma sessão ChronoClick.",
+    features: { updateFields: true },
     numbering: {
       config: [
+        {
+          reference: "chrono-sections",
+          levels: [
+            {
+              level: 0,
+              format: "decimal",
+              text: "%1",
+              suffix: "nothing",
+              alignment: AlignmentType.LEFT,
+              style: { paragraph: { indent: { left: 0, hanging: 0 } } },
+            },
+          ],
+        },
         { reference: "chrono-steps-left", levels: [numberingLevel(AlignmentType.LEFT, 0)] },
         {
           reference: "chrono-steps-center",
@@ -602,6 +672,11 @@ async function patchPackage(buffer) {
           },
         }),
         paragraphStyle("ChronoSectionTitle", "ChronoClick - Título da Seção", {
+          basedOn: "Heading1",
+          run: { font, size: 30, bold: true, color: theme.headingColor || "111827" },
+          paragraph: { spacing: { before: 300, after: 160 }, keepNext: true, outlineLevel: 0 },
+        }),
+        paragraphStyle("ChronoTocTitle", "ChronoClick - Título do Sumário", {
           run: { font, size: 30, bold: true, color: theme.headingColor || "111827" },
           paragraph: { spacing: { before: 300, after: 160 }, keepNext: true },
         }),

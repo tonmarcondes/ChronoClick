@@ -1,12 +1,16 @@
 // Shared defaults for recording, review, and document generation.
 globalThis.ChronoDefaults = {
-  configVersion: 7,
+  configVersion: 8,
   recording: { ...ChronoPolicy.defaults },
   projectRoot: "${HOME}/sistemas/cronoPrint",
   documentTitle: "Procedimento gravado",
   sectionTitlePattern: "{sectionNumber}. {pageName}",
   screenshotCaptionPattern: "Figura {sectionNumber}.{screenNumber} — {pageName}",
   tableCaptionPattern: "Tabela {sectionNumber}.{tableNumber} — Passos de {pageName}",
+  showScreenshotCaption: true,
+  showTableCaption: true,
+  showCaptureErrorsInDocx: true,
+  showTableOfContents: false,
   groupWindowMs: 0,
   columns: [
     { key: "step", title: "STEP", source: ["sequence"], width: 12, alignment: "center" },

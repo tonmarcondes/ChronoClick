@@ -136,6 +136,8 @@ function readForm() {
   c.tableCaptionPattern = $("tableCaptionPattern").value;
   c.showScreenshotCaption = $("showScreenshotCaption").checked;
   c.showTableCaption = $("showTableCaption").checked;
+  c.showTableOfContents = $("showTableOfContents").checked;
+  c.showCaptureErrorsInDocx = $("showCaptureErrorsInDocx").checked;
   c.linkColorSource = $("linkColorSource").value;
   c.printDecoration = {
     enabled: $("printBorderEnabled").checked,
@@ -211,6 +213,8 @@ async function load() {
   $("tableCaptionPattern").value = c.tableCaptionPattern;
   $("showScreenshotCaption").checked = c.showScreenshotCaption !== false;
   $("showTableCaption").checked = c.showTableCaption !== false;
+  $("showTableOfContents").checked = c.showTableOfContents === true;
+  $("showCaptureErrorsInDocx").checked = c.showCaptureErrorsInDocx !== false;
   $("linkColorSource").value = c.linkColorSource || "settings";
   const decoration = c.printDecoration || {};
   $("printBorderEnabled").checked = decoration.enabled === true;

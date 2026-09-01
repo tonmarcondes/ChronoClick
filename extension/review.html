@@ -97,12 +97,21 @@
             ><input id="showScreenshotCaption" type="checkbox" /> Mostrar legenda das imagens</label
           >
           <label><input id="showTableCaption" type="checkbox" /> Mostrar legenda das tabelas</label>
+          <label><input id="showTableOfContents" type="checkbox" /> Inserir sumário</label>
+          <label
+            ><input id="showCaptureErrorsInDocx" type="checkbox" /> Mostrar erros de captura no
+            DOCX</label
+          >
           <label class="field"
             >Pasta raiz para novos projetos<input
               id="projectRoot"
               placeholder="${HOME}/sistemas/cronoPrint"
           /></label>
         </div>
+        <p class="muted">
+          Para numeração automática, mantenha <code>{sectionNumber}</code> no início do título da
+          seção. O sumário usa esses títulos e o Word atualiza seus campos ao abrir o documento.
+        </p>
       </section>
 
       <section class="card">

@@ -424,6 +424,31 @@ function dataUrl(file, mime) {
     !partialXml.includes("A página mudou antes do print.")
   )
     throw new Error("Aviso de exportação parcial ausente.");
+  savedSession.config.showCaptureErrorsInDocx = false;
+  savedSession.config.showTableOfContents = true;
+  await call({ command: "saveSession", projectPath, session: savedSession });
+  const cleanPartial = await call({
+    command: "generateDocx",
+    projectPath,
+    fileName: "partial-clean",
+    allowPartial: true,
+  });
+  const cleanPartialXml = spawnSync("unzip", ["-p", cleanPartial.output, "word/document.xml"], {
+    encoding: "utf8",
+  }).stdout;
+  const cleanSettingsXml = spawnSync("unzip", ["-p", cleanPartial.output, "word/settings.xml"], {
+    encoding: "utf8",
+  }).stdout;
+  if (cleanPartialXml.includes("GRAVAÇÃO INCOMPLETA"))
+    throw new Error("Aviso de erro apareceu mesmo desativado na configuração.");
+  if (
+    !cleanPartialXml.includes("TOC ") ||
+    !cleanPartialXml.includes("1-1") ||
+    !cleanPartialXml.includes("<w:numPr>")
+  )
+    throw new Error("Sumário ou numeração dinâmica dos títulos ausente.");
+  if (!cleanSettingsXml.includes("updateFields"))
+    throw new Error("O Word não foi orientado a atualizar sumário e numeração.");
   if (
     partialXml.includes('w:pStyle w:val="ChronoCaption"') ||
     partialXml.includes('w:pStyle w:val="ChronoTableCaption"')
