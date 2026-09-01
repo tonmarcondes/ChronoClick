@@ -4,7 +4,7 @@
 
 O ChronoClick registra interações com páginas web, salva capturas e microprints dos componentes e organiza os passos em um documento `.docx`. O processamento é local: cada projeto fica em uma pasta, sem banco de dados ou serviço de armazenamento externo.
 
-**Versão:** 0.10.0 · **Plataforma dos instaladores:** macOS · **Licença:** [Apache 2.0](LICENSE)
+**Versão:** 0.11.0 · **Plataforma dos instaladores:** macOS · **Licença:** [Apache 2.0](LICENSE)
 
 [Instalação](#instalação) · [Como usar](#como-usar) · [Configurações](#configurações) · [Desenvolvimento](#desenvolvimento) · [Limitações](#limitações)
 
@@ -90,8 +90,9 @@ Essa regra pode ser desativada em **Evitar entradas repetidas em cada site**.
 
 | Grupo | Opções principais |
 | --- | --- |
-| Documento | Título, sumário, legendas, avisos de captura e pasta de destino |
+| Documento | Título, sumário, tabela ou texto, legendas, avisos de captura e pasta de destino |
 | Gravação | Scroll associado a ações, consolidação de repetições, término da digitação e validação de captura |
+| Espaçamento por ação | Regex da ação, linhas antes/depois e tabulações |
 | Imagens | Formato, qualidade, dimensões máximas e margem dos microprints |
 | Textos automáticos | Frases para cada tipo de ação e suas variáveis |
 | Colunas | Nome, fonte do conteúdo, largura e alinhamento |
@@ -103,6 +104,10 @@ As legendas das imagens e das tabelas podem ser ativadas separadamente. As opç�
 Os títulos usam numeração automática do Word quando `{sectionNumber}` aparece no início do padrão. Assim, excluir uma seção completa reorganiza as seguintes. A opção **Inserir sumário** cria o índice a partir desses títulos. Se o Word não atualizar os campos ao abrir, use `Ctrl+A` e `F9` no Windows ou selecione todo o documento e atualize os campos no macOS.
 
 Mesmo com **Mostrar erros de captura no DOCX** desativado, o ChronoClick continua avisando sobre capturas incompletas antes da exportação. A opção controla somente a presença do aviso dentro do documento.
+
+**Marcar observação** escurece a página, permite arrastar um retângulo e pedir uma explicação. A área selecionada vira o microprint e o texto aparece imediatamente acima do print principal. A opacidade da seleção é configurável.
+
+Em **Apresentação dos passos**, escolha tabela ou parágrafos numerados. As regras de espaçamento usam uma linha por expressão: `regex | linhas antes | linhas depois | tabs`. O último scroll associado não cria outro passo: sua frase é unida à ação seguinte. Digitação continua capturando a tela, mas não gera microprint do campo.
 
 O arquivo `theme.css` permite ajustar os tokens `--chrono-*` da apresentação. Nos links, o campo **Usar cor dos links definida em** escolhe explicitamente entre a configuração visual e o CSS. Nos demais tokens de tema, os valores presentes no CSS têm precedência sobre as opções equivalentes.
 

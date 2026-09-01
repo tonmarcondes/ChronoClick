@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 0.11.0
+
+- Transformei a observação em uma seleção de área com explicação e microprint.
+- Adicionei apresentação dos passos em tabela ou texto e regras de espaçamento por regex.
+- Removi o microprint da digitação e uni o último scroll à interação seguinte.
+
 ## 0.10.0
 
 - Incluí opções para sumário e exibição dos erros de captura no DOCX.
