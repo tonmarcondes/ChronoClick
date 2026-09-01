@@ -190,9 +190,8 @@ const media = { screenDataUrl: "data:image/png;base64,AA", microDataUrl: null, s
     { ...event("click", "#continue"), pendingScroll: { scrollY: 900, selector: "body" } },
     media,
   );
-  assert.equal(getSession().steps.at(-2).action, "scroll");
-  assert.equal(getSession().steps.at(-2).scrollY, 900);
   assert.equal(getSession().steps.at(-1).action, "click");
+  assert.equal(getSession().steps.at(-1).scrollBefore.scrollY, 900);
   getSession().steps.forEach((s, i) => assert.equal(s.sequence, i + 1));
   assert.equal(
     new Set(getSession().steps.map((s) => s.images.screen)).size,

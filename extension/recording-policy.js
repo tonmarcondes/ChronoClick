@@ -41,6 +41,7 @@ globalThis.ChronoPolicy = {
     separateScreens: false,
     validateCapture: true,
     delayLinkNavigation: true,
+    observationOverlayOpacity: 25,
   },
   canGroup(group, incoming, signature, config) {
     if (!group || config.recording?.separateScreens || incoming.action === "scroll") return false;

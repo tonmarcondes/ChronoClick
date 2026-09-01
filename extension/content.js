@@ -35,7 +35,6 @@
   }
   let pendingScroll = null;
   const scrollPositions = new WeakMap();
-  let observeNext = false;
   let lastKnownUrl = location.href,
     lastPageViewUrl = "";
   let pageViewTimer = null,
@@ -218,7 +217,10 @@
     if (!entry || entry.composing) return;
     clearTimeout(entry.timer);
     dirtyFields.delete(element);
-    return record("typing", element, { value: ChronoPolicy.typedValue(element, options) });
+    return record("typing", element, {
+      value: ChronoPolicy.typedValue(element, options),
+      noMicroprint: true,
+    });
   }
 
   async function flushAll() {
@@ -260,6 +262,105 @@
     );
   }
 
+  function startObservationSelection() {
+    if (state !== "recording") return { ok: false, error: "A gravação não está ativa." };
+    if (document.querySelector("[data-chrono-observation-overlay]"))
+      return { ok: false, error: "A seleção já está aberta." };
+    const overlay = document.createElement("div"),
+      box = document.createElement("div"),
+      hint = document.createElement("div");
+    overlay.dataset.chronoObservationOverlay = overlay.dataset.chronoRecorderUi = "true";
+    hint.textContent = "Arraste para selecionar uma área · Esc para cancelar";
+    const alpha = Math.max(0, Math.min(80, Number(options.observationOverlayOpacity ?? 25))) / 100;
+    Object.assign(overlay.style, {
+      position: "fixed",
+      inset: "0",
+      zIndex: "2147483647",
+      cursor: "crosshair",
+      background: `rgba(15,23,42,${alpha})`,
+    });
+    Object.assign(box.style, {
+      position: "fixed",
+      display: "none",
+      border: "2px solid #38bdf8",
+      boxShadow: `0 0 0 9999px rgba(15,23,42,${alpha})`,
+    });
+    Object.assign(hint.style, {
+      position: "fixed",
+      top: "16px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      padding: "9px 14px",
+      borderRadius: "8px",
+      background: "white",
+      color: "#172033",
+      font: "14px system-ui",
+    });
+    overlay.append(box, hint);
+    let start;
+    const cancel = () => {
+      removeEventListener("keydown", onKey, true);
+      overlay.remove();
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") cancel();
+    };
+    addEventListener("keydown", onKey, true);
+    overlay.onpointerdown = (event) => {
+      if (event.button) return;
+      start = { x: event.clientX, y: event.clientY };
+      overlay.style.background = "transparent";
+      box.style.display = "block";
+      overlay.setPointerCapture(event.pointerId);
+    };
+    overlay.onpointermove = (event) => {
+      if (!start) return;
+      Object.assign(box.style, {
+        left: `${Math.min(start.x, event.clientX)}px`,
+        top: `${Math.min(start.y, event.clientY)}px`,
+        width: `${Math.abs(event.clientX - start.x)}px`,
+        height: `${Math.abs(event.clientY - start.y)}px`,
+      });
+    };
+    overlay.onpointerup = async (event) => {
+      if (!start) return;
+      const rect = {
+        x: Math.min(start.x, event.clientX),
+        y: Math.min(start.y, event.clientY),
+        width: Math.abs(event.clientX - start.x),
+        height: Math.abs(event.clientY - start.y),
+      };
+      if (rect.width < 12 || rect.height < 12) {
+        start = null;
+        box.style.display = "none";
+        return;
+      }
+      const explanation = prompt("Escreva a explicação que ficará acima do print:", "");
+      if (explanation === null) {
+        cancel();
+        return;
+      }
+      cancel();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      sendEvent({
+        action: "observation",
+        timestamp: new Date().toISOString(),
+        observationText: clean(explanation, 1000),
+        component: {
+          tagName: "body",
+          role: "observation",
+          name: clean(explanation) || "Área observada",
+          selector: "body",
+        },
+        rect,
+        click: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, button: 0 },
+        page: pageInfo(),
+      });
+    };
+    document.documentElement.append(overlay);
+    return { ok: true };
+  }
+
   async function captureSelection() {
     if (state !== "recording") return { ok: false, error: "A gravação não está ativa." };
     const selection = getSelection();
@@ -298,15 +399,6 @@
     (event) => {
       if (state !== "recording" || event.target.closest?.("[data-chrono-recorder-ui]")) return;
       for (const field of [...dirtyFields.keys()]) if (field !== event.target) flushTyping(field);
-      if (observeNext) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        observeNext = false;
-        record("observation", event.target, {
-          click: { x: event.clientX, y: event.clientY, button: event.button },
-        });
-        return;
-      }
       const interactive = event.target.closest?.(interactiveSelector);
       if (!interactive) return;
       if (guardedTarget(event)) return;
@@ -541,8 +633,8 @@
       respond(info);
     }
     if (message.type === "OBSERVE_NEXT") {
-      observeNext = true;
-      state = "recording";
+      respond(startObservationSelection());
+      return;
     }
     if (message.type === "GET_PAGE") respond(pageInfo());
     if (message.type === "CAPTURE_SELECTION") {

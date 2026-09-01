@@ -79,7 +79,7 @@ function migrateConfig(saved = {}) {
       : saved.columns || DEFAULT_CONFIG.columns;
   const migrated = {
     ...saved,
-    configVersion: 8,
+    configVersion: 9,
     columns: legacyColumns.map((column, index) => ({
       ...column,
       alignment: column.alignment || (index === 0 ? "center" : "left"),
@@ -170,7 +170,7 @@ async function captureVisible(sender, payload) {
     if (active?.id !== sender.tab.id)
       throw new Error("A aba de origem não está visível. Nenhum print de outra aba foi salvo.");
     const selector =
-      payload.noMicroprint || payload.action === "highlight-text"
+      payload.noMicroprint || ["highlight-text", "observation"].includes(payload.action)
         ? null
         : payload.component?.selector;
     const selectors = [
@@ -281,21 +281,7 @@ async function addEvent(payload, media) {
   );
   const pendingScroll = payload.pendingScroll;
   delete payload.pendingScroll;
-  if (pendingScroll) {
-    await addEvent(
-      {
-        action: "scroll",
-        ...pendingScroll,
-        page: payload.page,
-        noMicroprint: true,
-        forceNewGroup: true,
-        component: { name: payload.page.pageName, role: "page", selector: pendingScroll.selector },
-        click: null,
-        captureNote: "Posição final da rolagem, capturada junto da interação seguinte.",
-      },
-      { ...media, microDataUrl: null },
-    );
-  }
+  if (pendingScroll) payload.scrollBefore = pendingScroll;
   const groupId = groupIdFor(payload, signature),
     isNewGroup = !session.groups.some((item) => item.id === groupId);
   const step = {
