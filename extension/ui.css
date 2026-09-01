@@ -162,6 +162,12 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   align-items: start;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 14px 0;
+  background: rgba(245, 247, 251, 0.96);
+  backdrop-filter: blur(10px);
 }
 .review h1 {
   margin: 0;
@@ -173,6 +179,62 @@ button:disabled {
   padding: 18px;
   margin-top: 18px;
   box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+.card[data-collapsible="true"] {
+  padding: 0;
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+.card[data-collapsible="true"] > h2 {
+  margin: 0;
+}
+.section-toggle {
+  display: flex;
+  width: 100%;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-radius: 0;
+  padding: 16px 18px;
+  color: #172033;
+  background: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: left;
+}
+.section-toggle::after {
+  content: "⌃";
+  color: #64748b;
+  font-size: 18px;
+  transition: transform 160ms ease;
+}
+.card.collapsed .section-toggle::after {
+  transform: rotate(180deg);
+}
+.card[data-collapsible="true"] > :not(h2) {
+  margin-right: 18px;
+  margin-left: 18px;
+}
+.card[data-collapsible="true"] > :last-child {
+  margin-bottom: 18px;
+}
+.card.collapsed > :not(h2) {
+  display: none;
+}
+.card:focus-within {
+  border-color: #8ba8ca;
+  box-shadow: 0 6px 24px rgba(40, 85, 137, 0.09);
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid rgba(40, 85, 137, 0.25);
+  outline-offset: 2px;
 }
 .grid {
   display: grid;
@@ -263,6 +325,18 @@ summary {
   gap: 8px;
 }
 @media (max-width: 760px) {
+  .review {
+    padding: 16px;
+  }
+  .review header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .review header > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
   .grid {
     grid-template-columns: 1fr;
   }
@@ -271,5 +345,11 @@ summary {
   }
   .step button {
     grid-column: 3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card[data-collapsible="true"],
+  .section-toggle::after {
+    transition: none;
   }
 }

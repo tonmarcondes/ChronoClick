@@ -6,6 +6,7 @@
   };
   globalThis.chrome = {
     runtime: {
+      onMessage: { addListener() {} },
       getManifest: () => ({ version: "0.9.0 • teste" }),
       openOptionsPage: () => location.assign("/extension/review.html"),
       sendMessage: async (message) => {

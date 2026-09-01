@@ -45,6 +45,30 @@ function showColorPreviews() {
   });
 }
 
+function setupCollapsibleSections() {
+  document.querySelectorAll(".review > .card").forEach((card, index) => {
+    const heading = card.querySelector(":scope > h2");
+    if (!heading || card.dataset.collapsible === "true") return;
+    card.dataset.collapsible = "true";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "section-toggle";
+    button.textContent = heading.textContent;
+    const key = `chrono-review-section-${index}`;
+    const preferred = localStorage.getItem(key);
+    const openByDefault = ["Documento", "Eventos gravados"].includes(heading.textContent.trim());
+    const expanded = preferred == null ? openByDefault : preferred === "open";
+    const setExpanded = (value) => {
+      card.classList.toggle("collapsed", !value);
+      button.setAttribute("aria-expanded", String(value));
+      localStorage.setItem(key, value ? "open" : "closed");
+    };
+    button.onclick = () => setExpanded(button.getAttribute("aria-expanded") !== "true");
+    heading.replaceChildren(button);
+    setExpanded(expanded);
+  });
+}
+
 function renderColumns() {
   $("columns").innerHTML = "";
   session.config.columns.forEach((column, index) => {
@@ -188,6 +212,7 @@ function readForm() {
 }
 
 async function load() {
+  setupCollapsibleSections();
   const data = await chrome.runtime.sendMessage({ type: "GET_SESSION" });
   if (!data.ok) {
     $("status").textContent = data.error || "Não foi possível carregar as configurações.";
