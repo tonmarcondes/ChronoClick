@@ -79,7 +79,7 @@ function migrateConfig(saved = {}) {
       : saved.columns || DEFAULT_CONFIG.columns;
   const migrated = {
     ...saved,
-    configVersion: 7,
+    configVersion: 8,
     columns: legacyColumns.map((column, index) => ({
       ...column,
       alignment: column.alignment || (index === 0 ? "center" : "left"),
@@ -418,6 +418,12 @@ async function startSession(name, root) {
       );
       if (!ack?.ok)
         throw new Error("A página não confirmou o início. Atualize a página e tente novamente.");
+      session.captureFailures = [];
+      session.document = null;
+      captureQueue = Promise.resolve();
+      eventQueue = Promise.resolve();
+      lastCaptureAt = 0;
+      Promise.resolve(chrome.runtime.sendMessage?.({ type: "SESSION_STARTED" })).catch(() => {});
       await broadcastState();
       return response;
     } catch (error) {

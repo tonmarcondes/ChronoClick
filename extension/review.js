@@ -332,6 +332,14 @@ $("documentLink").onclick = async (event) => {
     $("status").textContent = `Erro: ${error.message}`;
   }
 };
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type !== "SESSION_STARTED") return;
+  session = { steps: [], groups: [], captureFailures: [], config: session.config };
+  $("captureWarnings").textContent = "";
+  $("documentLink").hidden = true;
+  renderSteps();
+  $("status").textContent = "Nova gravação iniciada. Os eventos e avisos anteriores foram limpos.";
+});
 for (const id of ["printBorderWidth", "printBorderType"]) {
   $(id).oninput = () => {
     $("printBorderEnabled").checked = Number($("printBorderWidth").value) > 0;

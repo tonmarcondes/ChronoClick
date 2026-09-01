@@ -17,9 +17,15 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   };
   let state = { ok: true, state: "idle", count: 0 },
     failStart = false,
-    failSave = false;
+    failSave = false,
+    reviewListener;
   const chrome = {
     runtime: {
+      onMessage: {
+        addListener(fn) {
+          reviewListener = fn;
+        },
+      },
       getManifest: () => ({ version: "0.9.0" }),
       openOptionsPage: () => calls.push("options"),
       sendMessage: async (message) => {
@@ -98,6 +104,13 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
     },
   });
   vm.runInContext(source("review.js").replace(/load\(\);\s*$/, ""), review);
+  vm.runInContext(
+    "session={config:{},steps:[{id:'old'}],groups:[],captureFailures:[{error:'old'}]};",
+    review,
+  );
+  reviewListener({ type: "SESSION_STARTED" });
+  assert.equal(vm.runInContext("session.steps.length", review), 0);
+  assert.equal(element("captureWarnings").textContent, "");
   element("printBorderEnabled").checked = false;
   element("printBorderWidth").value = "2";
   element("printBorderWidth").oninput();

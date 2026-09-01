@@ -15,6 +15,7 @@ const context = vm.createContext({
   URL,
   chrome: {
     runtime: {
+      sendMessage: async () => ({ ok: true }),
       onMessage: {
         addListener(fn) {
           listener = fn;
@@ -74,7 +75,8 @@ const send = (type) => new Promise((resolve) => listener({ type }, {}, resolve))
   const state = await send("GET_STATE");
   assert.equal(state.state, "recording");
   assert.equal(state.count, 0);
-  assert.equal(state.document, undefined);
+  assert.equal(state.document, null);
+  assert.equal(state.failures.length, 0);
   assert.equal(state.project.root, "/new-project");
   assert.equal((await send("START")).ok, false);
   assert.equal(creates, 1);
