@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.12.0
+
+- Removi a dependência do aplicativo nativo: gravação, imagens e geração do DOCX agora ficam dentro da extensão.
+- Adicionei validação de acesso por e-mail, preparada para o serviço futuro em `chronoclick.app`.
+- Passei a salvar o documento pela janela de download do navegador.
+- Incluí build e pacote próprios para publicação na Chrome Web Store.
+
 ## 0.11.1
 
 - Permiti usar regex para controlar o espaço antes e depois dos prints e das tabelas.
