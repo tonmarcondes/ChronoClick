@@ -55,12 +55,6 @@
             print; <code>{tableNumber}</code>: número da tabela; <code>{pageName}</code>: nome da
             página.
           </p>
-          <h3>Pasta raiz — variáveis de ambiente</h3>
-          <p>
-            <code>~</code>: pasta do usuário. <code>$HOME</code>, <code>${HOME}</code> ou
-            <code>%HOME%</code>: variável HOME. Outras variáveis seguem <code>$VAR</code>,
-            <code>${VAR}</code> ou <code>%VAR%</code> e precisam existir no ambiente do host local.
-          </p>
           <h3>Fontes de conteúdo das colunas</h3>
           <p>
             <code>sequence</code> (numeração), <code>auto-description</code> (frase automática),
@@ -68,19 +62,6 @@
             <code>editable</code> (descrição manual), <code>url</code>, <code>page-title</code>,
             <code>timestamp</code>, <code>value</code>, <code>fixed-text:Seu texto</code>. Combine
             fontes separando por vírgulas.
-          </p>
-          <h3>Variáveis CSS do arquivo theme.css</h3>
-          <p>
-            <code>--chrono-font-family</code>, <code>--chrono-body-font-size</code>,
-            <code>--chrono-heading-color</code>, <code>--chrono-table-header-background</code>,
-            <code>--chrono-table-header-color</code>, <code>--chrono-table-border-color</code>,
-            <code>--chrono-marker-background</code>, <code>--chrono-marker-color</code>,
-            <code>--chrono-marker-size</code>, <code>--chrono-component-bold</code>,
-            <code>--chrono-component-color</code>, <code>--chrono-link-color</code>,
-            <code>--chrono-microprint-height</code>, <code>--chrono-microprint-max-width</code>,
-            <code>--chrono-title-before</code>, <code>--chrono-title-after</code>,
-            <code>--chrono-screen-before</code>, <code>--chrono-screen-after</code>,
-            <code>--chrono-table-before</code>, <code>--chrono-table-after</code>.
           </p>
           <p>Exemplo: <code>Insira o texto {value} no campo {name}.</code></p>
         </details>
@@ -108,15 +89,11 @@
             ><input id="showCaptureErrorsInDocx" type="checkbox" /> Mostrar erros de captura no
             DOCX</label
           >
-          <label class="field"
-            >Pasta raiz para novos projetos<input
-              id="projectRoot"
-              placeholder="${HOME}/sistemas/cronoPrint"
-          /></label>
         </div>
         <p class="muted">
           Para numeração automática, mantenha <code>{sectionNumber}</code> no início do título da
-          seção. O sumário usa esses títulos e o Word atualiza seus campos ao abrir o documento.
+          seção. O sumário usa esses títulos e o Word atualiza seus campos ao abrir o documento. O
+          DOCX é salvo pela janela de download do navegador.
         </p>
       </section>
 

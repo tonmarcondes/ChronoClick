@@ -23,34 +23,49 @@
         </svg>
       </button>
     </header>
-    <div class="recording-status"><span id="badge">Pronto</span><span id="summary"></span></div>
-    <label id="projectField" class="field"
-      >Nome do projeto<input
-        id="projectName"
-        placeholder="Ex.: Cadastro de cliente"
-        autocomplete="off"
-    /></label>
-    <button id="primaryAction" class="primary main-action">Iniciar nova</button>
-    <p id="documentStatus" class="hint" role="status" aria-live="polite"></p>
-    <a id="documentLink" class="document-link" href="#" hidden>Abrir documento Word</a>
-    <button id="newProject" class="text-button" hidden>Iniciar outro projeto</button>
-    <details id="captureTools" hidden>
-      <summary>Ferramentas de captura</summary>
-      <div class="capture-tools">
-        <button id="pause">Pausar</button><button id="resume">Continuar</button>
-        <button id="observe">Marcar observação</button
-        ><button id="highlight">Capturar texto selecionado</button>
-      </div>
-    </details>
-    <details id="captureWarnings" class="hint error" hidden>
-      <summary id="warningCount"></summary>
-      <p id="warningDetails"></p>
-    </details>
-    <label id="partialConsent" class="partial-consent" hidden
-      ><input id="allowPartial" type="checkbox" /> Gerar os passos salvos, com aviso das capturas
-      que falharam.</label
-    >
-    <p id="error" class="hint error" role="alert"></p>
+    <section id="accessPanel" class="access-panel" hidden>
+      <strong>Validar acesso</strong>
+      <p>Informe o e-mail autorizado para continuar.</p>
+      <label class="field"
+        >E-mail<input
+          id="accessEmail"
+          type="email"
+          autocomplete="email"
+          placeholder="seu@email.com"
+      /></label>
+      <button id="validateAccess" class="primary">Validar e-mail</button>
+      <p id="accessError" class="hint error" role="alert"></p>
+    </section>
+    <main id="appContent">
+      <div class="recording-status"><span id="badge">Pronto</span><span id="summary"></span></div>
+      <label id="projectField" class="field"
+        >Nome do projeto<input
+          id="projectName"
+          placeholder="Ex.: Cadastro de cliente"
+          autocomplete="off"
+      /></label>
+      <button id="primaryAction" class="primary main-action">Iniciar nova</button>
+      <p id="documentStatus" class="hint" role="status" aria-live="polite"></p>
+      <a id="documentLink" class="document-link" href="#" hidden>Abrir documento Word</a>
+      <button id="newProject" class="text-button" hidden>Iniciar outro projeto</button>
+      <details id="captureTools" hidden>
+        <summary>Ferramentas de captura</summary>
+        <div class="capture-tools">
+          <button id="pause">Pausar</button><button id="resume">Continuar</button>
+          <button id="observe">Marcar observação</button
+          ><button id="highlight">Capturar texto selecionado</button>
+        </div>
+      </details>
+      <details id="captureWarnings" class="hint error" hidden>
+        <summary id="warningCount"></summary>
+        <p id="warningDetails"></p>
+      </details>
+      <label id="partialConsent" class="partial-consent" hidden
+        ><input id="allowPartial" type="checkbox" /> Gerar os passos salvos, com aviso das capturas
+        que falharam.</label
+      >
+      <p id="error" class="hint error" role="alert"></p>
+    </main>
     <script src="popup-model.js"></script>
     <script src="popup.js"></script>
   </body>

@@ -2,7 +2,6 @@
 globalThis.ChronoDefaults = {
   configVersion: 10,
   recording: { ...ChronoPolicy.defaults },
-  projectRoot: "${HOME}/sistemas/cronoPrint",
   documentTitle: "Procedimento gravado",
   sectionTitlePattern: "{sectionNumber}. {pageName}",
   screenshotCaptionPattern: "Figura {sectionNumber}.{screenNumber} — {pageName}",

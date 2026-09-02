@@ -13,6 +13,11 @@ async function send(type, payload = {}) {
 }
 
 function render() {
+  const authenticated = state.access?.authenticated === true;
+  $("accessPanel").hidden = authenticated;
+  $("appContent").hidden = !authenticated;
+  $("review").disabled = !authenticated;
+  if (!authenticated) return;
   const model = ChronoPopup.model(state, newProject);
   const labels = {
     idle: "Pronto",
@@ -125,6 +130,23 @@ async function captureTool(type) {
 }
 $("observe").onclick = () => run(() => captureTool("OBSERVE_NEXT"));
 $("highlight").onclick = () => run(() => captureTool("CAPTURE_SELECTION"));
+$("validateAccess").onclick = async () => {
+  const button = $("validateAccess");
+  button.disabled = true;
+  $("accessError").textContent = "Validando…";
+  try {
+    await send("VALIDATE_ACCESS", { email: $("accessEmail").value });
+    $("accessError").textContent = "";
+    await refresh();
+  } catch (error) {
+    $("accessError").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+};
+$("accessEmail").onkeydown = (event) => {
+  if (event.key === "Enter") $("validateAccess").click();
+};
 $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 refresh().catch((error) => {
   $("error").textContent = error.message;

@@ -1,6 +1,12 @@
 import "./recording-policy.js";
 import "./default-config.js";
-const HOST = "com.chronoclick.recorder";
+import {
+  readAsset,
+  readProjectAssets,
+  removeProjectAssets,
+  saveEventAssets,
+} from "./project-store.js";
+import { accessStatus, clearAccess, validateAccess } from "./access-control.js";
 const DEFAULT_CONFIG = globalThis.ChronoDefaults;
 
 let recorderState = "idle",
@@ -20,56 +26,69 @@ function withTimeout(promise, ms, message) {
     }),
   ]).finally(() => clearTimeout(timer));
 }
-let nativePort = null;
-const nativePending = new Map();
-
-function native(command, payload = {}) {
-  if (!nativePort) {
-    nativePort = chrome.runtime.connectNative(HOST);
-    nativePort.onMessage.addListener((response) => {
-      const pending = nativePending.get(response.requestId);
-      if (!pending) return;
-      nativePending.delete(response.requestId);
-      response?.ok
-        ? pending.resolve(response)
-        : pending.reject(new Error(response?.error || "Falha no host local."));
-    });
-    nativePort.onDisconnect.addListener(() => {
-      const message = chrome.runtime.lastError?.message || "O host local foi desconectado.";
-      for (const pending of nativePending.values()) pending.reject(new Error(message));
-      nativePending.clear();
-      nativePort = null;
-    });
-  }
-  const requestId = crypto.randomUUID();
-  return new Promise((resolve, reject) => {
-    nativePending.set(requestId, { resolve, reject });
-    nativePort.postMessage({ requestId, command, ...payload });
-  });
+async function requireAccess() {
+  const access = await accessStatus();
+  if (!access.authenticated) throw new Error("Valide seu e-mail para usar o ChronoClick.");
+  return access;
 }
 
-async function nativeSaveEvent(payload) {
-  const started = await native("beginEvent", {
-    projectPath: payload.projectPath,
-    step: payload.step,
-    signature: payload.signature,
+let creatingOffscreen = null;
+async function ensureOffscreen() {
+  const url = chrome.runtime.getURL("offscreen.html");
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: ["OFFSCREEN_DOCUMENT"],
+    documentUrls: [url],
   });
-  for (const [kind, value] of [
-    ["screen", payload.screenDataUrl],
-    ["micro", payload.microDataUrl],
-  ]) {
-    if (!value) continue;
-    const chunkSize = 480000;
-    for (let index = 0, offset = 0; offset < value.length; index++, offset += chunkSize) {
-      await native("eventChunk", {
-        uploadId: started.uploadId,
-        kind,
-        index,
-        data: value.slice(offset, offset + chunkSize),
+  if (contexts.length) return;
+  if (!creatingOffscreen)
+    creatingOffscreen = chrome.offscreen
+      .createDocument({
+        url: "offscreen.html",
+        reasons: ["BLOBS"],
+        justification: "Gerar o documento DOCX com os prints da gravação.",
+      })
+      .finally(() => {
+        creatingOffscreen = null;
       });
-    }
-  }
-  return native("commitEvent", { uploadId: started.uploadId });
+  await creatingOffscreen;
+}
+
+function safeFileName(value) {
+  return (
+    String(value || "Procedimento")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .trim() || "Procedimento"
+  );
+}
+
+async function generateAndDownloadDocx() {
+  await ensureOffscreen();
+  const assets = await readProjectAssets(project.id, session);
+  const response = await chrome.runtime.sendMessage({
+    target: "offscreen",
+    type: "GENERATE_DOCX_OFFSCREEN",
+    session,
+    assets,
+  });
+  if (!response?.ok) throw new Error(response?.error || "Não foi possível gerar o DOCX.");
+  const filename = `${safeFileName(project.name)}.docx`;
+  const downloadId = await chrome.downloads.download({
+    url: response.url,
+    filename: `ChronoClick/${filename}`,
+    saveAs: true,
+  });
+  return {
+    output: filename,
+    document: {
+      state: "ready",
+      output: filename,
+      downloadId,
+      generatedAt: new Date().toISOString(),
+    },
+  };
 }
 
 function migrateConfig(saved = {}) {
@@ -127,6 +146,11 @@ async function loadState() {
       session = stored.chronoSession || null;
       project = stored.chronoProject || null;
       recorderState = stored.chronoState || "idle";
+      if (project && !project.id) {
+        project = null;
+        session = null;
+        recorderState = "idle";
+      }
       if (session) session.config = migrateConfig(session.config);
       if (recorderState === "finalizing") {
         recorderState = session?.finishedAt ? "finished" : "paused";
@@ -291,14 +315,7 @@ async function addEvent(payload, media) {
     description: "",
     ...payload,
   };
-  const result = await nativeSaveEvent({
-    projectPath: project.root,
-    step,
-    screenDataUrl,
-    microDataUrl,
-    signature,
-  });
-  step.images = result.step.images;
+  step.images = await saveEventAssets(project.id, step, screenDataUrl, microDataUrl);
   session.steps.push(step);
   const resolvedKey = [payload.action, payload.page?.url, payload.component?.selector].join("|");
   session.captureFailures = (session.captureFailures || []).filter(
@@ -311,13 +328,21 @@ async function addEvent(payload, media) {
       screenshot: step.images.screen,
       signature,
       stepIds: [step.id],
+      latestStepId: step.id,
+      markerRects: payload.markerRects || {},
     });
-  else session.groups.find((item) => item.id === groupId).stepIds.push(step.id);
+  else {
+    const group = session.groups.find((item) => item.id === groupId);
+    group.stepIds.push(step.id);
+    group.screenshot = step.images.screen;
+    group.signature = signature;
+    group.latestStepId = step.id;
+    group.markerRects = payload.markerRects || group.markerRects || {};
+  }
   if (duplicateIds.size) {
     session.steps = session.steps.filter((item) => !duplicateIds.has(item.id));
     ChronoPolicy.normalize(session);
   }
-  await native("saveSession", { projectPath: project.root, session });
   await saveState();
   return { ok: true, step };
 }
@@ -332,6 +357,7 @@ async function startSession(name, root) {
   if (startingSession) throw new Error("Uma nova gravação já está sendo iniciada.");
   startingSession = true;
   try {
+    await requireAccess();
     if (["recording", "paused", "finalizing"].includes(recorderState))
       throw new Error("Finalize a gravação atual antes de iniciar outra.");
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -370,31 +396,30 @@ async function startSession(name, root) {
     }
     const stored = await chrome.storage.local.get("chronoConfig");
     const config = migrateConfig(stored.chronoConfig || {});
-    if (root?.trim()) config.projectRoot = root.trim();
-    await withTimeout(
-      native("ping"),
-      5000,
-      "O serviço local não respondeu. Execute o instalador do ChronoClick e recarregue a extensão.",
-    );
-    const response = await withTimeout(
-      native("createProject", {
-        name: name || `Projeto ${new Date().toLocaleString("pt-BR")}`,
-        root: config.projectRoot,
+    const projectName = name?.trim() || `Projeto ${new Date().toLocaleString("pt-BR")}`;
+    const response = {
+      project: {
+        id: crypto.randomUUID(),
+        name: projectName,
+        root: "Armazenamento local da extensão",
+        createdAt: new Date().toISOString(),
+      },
+      session: {
+        version: 1,
+        startedAt: new Date().toISOString(),
+        finishedAt: null,
         config,
-      }),
-      10000,
-      "O serviço local não conseguiu criar o projeto a tempo. Confira a pasta de destino.",
-    );
+        steps: [],
+        groups: [],
+        captureFailures: [],
+        document: null,
+      },
+    };
     const previous = { project, session, recorderState };
     project = response.project;
     session = response.session;
     session.initialUrl = tab.url;
     try {
-      await withTimeout(
-        native("saveSession", { projectPath: project.root, session }),
-        5000,
-        "Não foi possível salvar a nova sessão.",
-      );
       recorderState = "recording";
       await saveState();
       const ack = await withTimeout(
@@ -404,6 +429,7 @@ async function startSession(name, root) {
       );
       if (!ack?.ok)
         throw new Error("A página não confirmou o início. Atualize a página e tente novamente.");
+      if (previous.project?.id) await removeProjectAssets(previous.project.id);
       session.captureFailures = [];
       session.document = null;
       captureQueue = Promise.resolve();
@@ -428,12 +454,19 @@ async function startSession(name, root) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     await loadState();
+    if (message.type === "GET_ACCESS") return { ok: true, ...(await accessStatus()) };
+    if (message.type === "VALIDATE_ACCESS")
+      return { ok: true, ...(await validateAccess(message.email)) };
+    if (message.type === "CLEAR_ACCESS") return { ok: true, ...(await clearAccess()) };
+    if (["GET_SESSION", "READ_IMAGE", "SAVE_SESSION", "SAVE_CONFIG"].includes(message.type))
+      await requireAccess();
     if (
       ["SAVE_SESSION", "SAVE_CONFIG", "START", "RESUME", "STOP", "PAUSE"].includes(message.type) &&
       session?.document?.state === "generating"
     )
       throw new Error("Aguarde a geração do DOCX terminar.");
-    if (message.type === "PING_HOST") return native("ping");
+    if (message.type === "PING_HOST")
+      return { ok: true, version: chrome.runtime.getManifest().version };
     if (message.type === "GET_STATE")
       return {
         ok: true,
@@ -443,7 +476,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document: session?.document,
         recording: session?.config?.recording || DEFAULT_CONFIG.recording,
         failures: session?.captureFailures || [],
-        projectRoot: session?.config?.projectRoot || DEFAULT_CONFIG.projectRoot,
+        access: await accessStatus(),
       };
     if (message.type === "START") {
       await startSession(message.name, message.root);
@@ -458,10 +491,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true, state: recorderState };
     }
     if (message.type === "RESUME") {
+      await requireAccess();
       if (!session || !project || !["paused", "finished"].includes(recorderState))
         throw new Error("Não há gravação pausada ou finalizada para continuar.");
       session.finishedAt = null;
-      await native("saveSession", { projectPath: project.root, session });
       recorderState = "recording";
       await saveState();
       await broadcastState();
@@ -474,8 +507,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await saveState();
         await broadcastState();
         await eventQueue.catch(() => {});
-        const response = await native("finish", { projectPath: project.root });
-        session = response.session;
+        session.finishedAt = new Date().toISOString();
         recorderState = "finished";
         await saveState();
         await broadcastState();
@@ -522,7 +554,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               error: error.message,
             });
             await saveState();
-            await native("saveSession", { projectPath: project.root, session }).catch(() => {});
             return { ok: false, error: error.message };
           }
         });
@@ -542,21 +573,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (session?.document?.state === "generating")
         return { ok: true, session, project, state: recorderState };
       await eventQueue;
-      const response = await native("getSession", { projectPath: project.root });
-      session = response.session;
-      project = response.project;
       session.config = migrateConfig(session.config);
       await saveState();
       return { ok: true, session, project, state: recorderState };
     }
     if (message.type === "READ_IMAGE")
-      return native("readImage", { projectPath: project.root, relativePath: message.relativePath });
+      return {
+        ok: true,
+        dataUrl: await readAsset(project.id, message.relativePath),
+      };
     if (message.type === "SAVE_SESSION") {
       if (["recording", "finalizing"].includes(recorderState))
         throw new Error("Pause ou finalize antes de editar os passos e configurações.");
       await eventQueue;
       session = message.session;
-      await native("saveSession", { projectPath: project.root, session });
       await saveState();
       return { ok: true };
     }
@@ -565,14 +595,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await chrome.storage.local.set({ chronoConfig: config });
       if (session && project) {
         session.config = config;
-        await native("saveSession", { projectPath: project.root, session });
         await saveState();
         await broadcastState();
       }
       return { ok: true };
     }
-    if (message.type === "OPEN_DOCX") return native("openDocx", { projectPath: project?.root });
+    if (message.type === "OPEN_DOCX") {
+      if (!session?.document?.downloadId) throw new Error("Gere o DOCX antes de abri-lo.");
+      await chrome.downloads.open(session.document.downloadId);
+      return { ok: true };
+    }
     if (message.type === "GENERATE_DOCX") {
+      await requireAccess();
       if (!project || !session) throw new Error("Inicie uma gravação antes de gerar o DOCX.");
       if (["recording", "finalizing"].includes(recorderState))
         throw new Error("Pause ou finalize a gravação antes de gerar o DOCX.");
@@ -588,12 +622,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           throw new Error(
             `${session.captureFailures.length} captura(s) falharam. Confirme a exportação dos passos salvos para continuar.`,
           );
-        await native("saveSession", { projectPath: project.root, session });
-        const result = await native("generateDocx", {
-          projectPath: project.root,
-          fileName: message.fileName || session.config.documentTitle || "procedimento",
-          allowPartial: message.allowPartial === true,
-        });
+        const result = await generateAndDownloadDocx();
         session.document = result.document;
         await saveState();
         return result;

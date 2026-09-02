@@ -1,15 +1,17 @@
 {
   "name": "chronoclick-recorder",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "engines": {
     "node": ">=20.9.0"
   },
   "private": true,
   "description": "Extensão Chromium e gerador DOCX para procedimentos gravados.",
   "scripts": {
-    "format": "prettier --write \"{extension,cli,native-host,tests}/**/*.{js,cjs,html,css}\" package.json",
-    "format:check": "prettier --check \"{extension,cli,native-host,tests}/**/*.{js,cjs,html,css}\" package.json",
-    "test": "node tests/recording.test.cjs && node tests/export-ui.test.cjs && node tests/start-session.test.cjs && node tests/capture-gate.test.cjs",
+    "format": "prettier --write \"{browser,extension,cli,native-host,scripts,tests}/**/*.{js,cjs,html,css}\" package.json",
+    "format:check": "prettier --check \"{browser,extension,cli,native-host,scripts,tests}/**/*.{js,cjs,html,css}\" package.json",
+    "build:extension": "node scripts/build-extension.cjs",
+    "package:extension": "npm run build:extension && node scripts/package-extension.cjs",
+    "test": "node tests/access-control.test.cjs && node tests/recording.test.cjs && node tests/export-ui.test.cjs && node tests/start-session.test.cjs && node tests/capture-gate.test.cjs",
     "test:integration": "node native-host/smoke-test.cjs",
     "test:ui": "node tests/ui-server.cjs",
     "generate": "node cli/generate-docx.cjs",
@@ -21,6 +23,7 @@
     "sharp": "^0.35.4"
   },
   "devDependencies": {
+    "esbuild": "^0.25.9",
     "prettier": "3.6.2"
   }
 }

@@ -10,6 +10,16 @@ const context = vm.createContext({
   URL,
   setTimeout,
   clearTimeout,
+  accessStatus: async () => ({ authenticated: true }),
+  clearAccess: async () => ({ authenticated: false }),
+  validateAccess: async () => ({ authenticated: true }),
+  readAsset: async () => null,
+  readProjectAssets: async () => ({}),
+  removeProjectAssets: async () => {},
+  saveEventAssets: async (_projectId, step, _screen, micro) => ({
+    screen: `screenshots/${step.id}.png`,
+    microprint: micro ? `components/${step.id}.png` : null,
+  }),
   chrome: {
     runtime: { onMessage: { addListener() {} } },
     storage: { local: { set: async () => {} } },
@@ -23,16 +33,16 @@ const context = vm.createContext({
 vm.runInContext(fs.readFileSync(path.join(root, "extension/recording-policy.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "extension/default-config.js"), "utf8"), context);
 vm.runInContext(
-  fs.readFileSync(path.join(root, "extension/background.js"), "utf8").replace(/^import .*;$/gm, ""),
+  fs
+    .readFileSync(path.join(root, "extension/background.js"), "utf8")
+    .replace(/^import[\s\S]*?const DEFAULT_CONFIG/, "const DEFAULT_CONFIG"),
   context,
 );
 vm.runInContext(
   `
   globalThis.api = { policy: ChronoPolicy, captureVisible, addEvent, migrateConfig, getSession: () => session };
-  project = {root:'/tmp/test'}; recorderState = 'recording';
+  project = {id:'test',root:'local'}; recorderState = 'recording';
   session = {config:migrateConfig({configVersion:5}),steps:[],groups:[]};
-  native = async () => ({ok:true});
-  nativeSaveEvent = async ({step}) => ({step:{images:{screen:'screenshots/'+step.id+'.png',microprint:step.noMicroprint?null:'components/'+step.id+'.png'}}});
   saveState = async () => {};
 `,
   context,

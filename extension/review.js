@@ -176,7 +176,6 @@ function readForm() {
     blurPt: Number($("printShadowBlur").value),
     offsetPt: Number($("printShadowOffset").value),
   };
-  c.projectRoot = $("projectRoot").value.trim();
   const t = c.theme;
   t.fontFamily = $("fontFamily").value;
   t.bodyFontSize = Number($("bodyFontSize").value);
@@ -255,7 +254,6 @@ async function load() {
   $("printShadowOpacity").value = decoration.opacity ?? 25;
   $("printShadowBlur").value = decoration.blurPt ?? 4;
   $("printShadowOffset").value = decoration.offsetPt ?? 3;
-  $("projectRoot").value = c.projectRoot || "${HOME}/sistemas/cronoPrint";
   $("fontFamily").value = t.fontFamily;
   $("bodyFontSize").value = t.bodyFontSize;
   $("headingColor").value = colorIn(t.headingColor);

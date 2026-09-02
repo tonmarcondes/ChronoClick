@@ -56,6 +56,14 @@ button:disabled {
   font-weight: 400;
   margin-top: 3px;
 }
+.access-panel {
+  display: grid;
+  gap: 12px;
+  padding: 18px 0 8px;
+}
+.access-panel p {
+  margin: 0;
+}
 .icon-button {
   display: grid;
   place-items: center;

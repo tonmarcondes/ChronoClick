@@ -15,7 +15,7 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
       elements.set(id, { value: "", textContent: "", dataset: {}, hidden: true });
     return elements.get(id);
   };
-  let state = { ok: true, state: "idle", count: 0 },
+  let state = { ok: true, state: "idle", count: 0, access: { authenticated: true } },
     failStart = false,
     failSave = false,
     reviewListener;
@@ -33,7 +33,13 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
         if (message.type === "GET_STATE") return state;
         if (message.type === "START") {
           if (failStart) return { ok: false, error: "Página desconectada" };
-          state = { ok: true, state: "recording", count: 0, project: { root: "/new" } };
+          state = {
+            ok: true,
+            state: "recording",
+            count: 0,
+            project: { root: "/new" },
+            access: { authenticated: true },
+          };
         }
         if (message.type === "STOP") state = { ...state, state: "finished", count: 2 };
         if (message.type === "GENERATE_DOCX")
@@ -134,8 +140,16 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   let listener, finishGeneration;
   const bg = vm.createContext({
     console,
+    crypto: require("node:crypto"),
     setTimeout,
     clearTimeout,
+    accessStatus: async () => ({ authenticated: true }),
+    clearAccess: async () => ({ authenticated: false }),
+    validateAccess: async () => ({ authenticated: true }),
+    readAsset: async () => null,
+    readProjectAssets: async () => ({}),
+    removeProjectAssets: async () => {},
+    saveEventAssets: async () => ({}),
     chrome: {
       runtime: {
         onMessage: {
@@ -150,7 +164,10 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   });
   vm.runInContext(source("recording-policy.js"), bg);
   vm.runInContext(source("default-config.js"), bg);
-  vm.runInContext(source("background.js").replace(/^import .*;$/gm, ""), bg);
+  vm.runInContext(
+    source("background.js").replace(/^import[\s\S]*?const DEFAULT_CONFIG/, "const DEFAULT_CONFIG"),
+    bg,
+  );
   bg.hostCall = async (command) =>
     command === "generateDocx"
       ? new Promise((resolve) => {
@@ -159,7 +176,7 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
         })
       : { ok: true };
   vm.runInContext(
-    `project={root:'/project'};session={config:{},steps:[{id:'1'}],groups:[]};recorderState='finished';native=hostCall;`,
+    `project={id:'project',root:'local'};session={config:{},steps:[{id:'1'}],groups:[]};recorderState='finished';generateAndDownloadDocx=()=>hostCall('generateDocx');`,
     bg,
   );
   const send = (type, extra = {}) =>

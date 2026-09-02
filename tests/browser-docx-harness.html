@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>ChronoClick — teste do gerador</title>
+  </head>
+  <body>
+    <h1>Teste do gerador DOCX no navegador</h1>
+    <p id="status">Preparando…</p>
+    <script src="/extension/recording-policy.js"></script>
+    <script src="/extension/default-config.js"></script>
+    <script src="/extension/generated/docx-generator.js"></script>
+    <script>
+      (async () => {
+        const png =
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAYAAAAZUZThAAAAAXNSR0IArs4c6QAAAL9JREFUeF7t0QENAAAAwqD3T20PBxQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4Gx7uAAHhLJ7VAAAAAElFTkSuQmCC";
+        const step = {
+          id: "1",
+          sequence: 1,
+          groupId: "g1",
+          action: "click",
+          timestamp: new Date().toISOString(),
+          component: { name: "Salvar", role: "button", selector: "#save" },
+          rect: { x: 10, y: 10, width: 50, height: 20 },
+          click: { x: 35, y: 20 },
+          page: {
+            url: "https://example.test",
+            pageName: "Página de teste",
+            viewportWidth: 100,
+            viewportHeight: 50,
+          },
+          images: { screen: "screen.png", microprint: "micro.png" },
+        };
+        const session = {
+          config: { ...ChronoDefaults, documentTitle: "ChronoClick no navegador" },
+          steps: [step],
+          groups: [{ id: "g1", page: step.page, screenshot: "screen.png", stepIds: ["1"] }],
+          captureFailures: [],
+        };
+        const blob = await ChronoBrowserDocx.generateDocx(session, {
+          "screen.png": png,
+          "micro.png": png,
+        });
+        const response = await fetch("/save-docx", {
+          method: "POST",
+          headers: {
+            "content-type":
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          },
+          body: blob,
+        });
+        if (!response.ok) throw new Error("O servidor de teste não salvou o documento.");
+        document.querySelector("#status").textContent =
+          `DOCX gerado no navegador (${blob.size} bytes).`;
+      })().catch((error) => {
+        document.querySelector("#status").textContent = `ERRO: ${error.message}`;
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>
