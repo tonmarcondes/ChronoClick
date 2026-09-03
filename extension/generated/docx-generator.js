@@ -22192,7 +22192,7 @@
           { reference: "chrono-steps-left", levels: [numberLevel(AlignmentType.LEFT, 0)] },
           {
             reference: "chrono-steps-center",
-            levels: [numberLevel(AlignmentType.CENTER, Math.max(0, Math.round(stepWidth / 2) - 120))]
+            levels: [numberLevel(AlignmentType.CENTER, 0)]
           },
           {
             reference: "chrono-steps-right",
