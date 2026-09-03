@@ -165,6 +165,7 @@ async function loadState() {
       }
     })();
   await initialization;
+  await updateActionBadge();
 }
 async function saveState() {
   await chrome.storage.local.set({
@@ -172,6 +173,16 @@ async function saveState() {
     chronoProject: project,
     chronoState: recorderState,
     chronoConfig: session?.config || DEFAULT_CONFIG,
+  });
+  await updateActionBadge();
+}
+async function updateActionBadge() {
+  if (!chrome.action?.setBadgeText) return;
+  const count = session?.steps?.length || 0;
+  await chrome.action.setBadgeBackgroundColor({ color: "#16B8BD" });
+  await chrome.action.setBadgeText({ text: count ? String(count) : "" });
+  await chrome.action.setTitle({
+    title: count ? `ChronoClick — ${count} print(s) criado(s)` : "ChronoClick Recorder",
   });
 }
 async function broadcastState() {

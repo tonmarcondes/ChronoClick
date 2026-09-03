@@ -138,6 +138,8 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(calls, ["SAVE_CONFIG", "close:9"]);
 
   let listener, finishGeneration;
+  const actionBadges = [],
+    openedDownloads = [];
   const bg = vm.createContext({
     console,
     crypto: require("node:crypto"),
@@ -158,8 +160,14 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
           },
         },
       },
-      storage: { local: { set: async () => {} } },
+      storage: { local: { get: async () => ({}), set: async () => {} } },
       tabs: { query: async () => [] },
+      action: {
+        setBadgeBackgroundColor: async () => {},
+        setBadgeText: async ({ text }) => actionBadges.push(text),
+        setTitle: async () => {},
+      },
+      downloads: { open: async (id) => openedDownloads.push(id) },
     },
   });
   vm.runInContext(source("recording-policy.js"), bg);
@@ -189,6 +197,14 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   finishGeneration();
   await generating;
   assert.equal((await send("GET_STATE")).document.state, "ready");
+  assert.ok(actionBadges.includes("1"));
+  vm.runInContext("session.document.downloadId=42", bg);
+  assert.equal((await send("OPEN_DOCX")).ok, true);
+  assert.deepEqual(openedDownloads, [42]);
+  vm.runInContext(
+    `project={id:'project-2',root:'local'};session={config:{},steps:[{id:'1'}],groups:[],captureFailures:[]};recorderState='finished';`,
+    bg,
+  );
   vm.runInContext(`session.captureFailures=[{error:'print'}];`, bg);
   assert.equal((await send("GENERATE_DOCX")).ok, false);
   const partial = send("GENERATE_DOCX", { allowPartial: true });
