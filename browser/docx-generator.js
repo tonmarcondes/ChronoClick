@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   Footer,
   Header,
@@ -10,6 +11,7 @@ import {
   PageNumber,
   Packer,
   Paragraph,
+  SimpleField,
   Table,
   TableCell,
   TableOfContents,
@@ -86,6 +88,23 @@ function format(pattern, variables) {
   return String(pattern || "").replace(/\{([^}]+)\}/g, (_, key) => variables[key] ?? "");
 }
 
+function sectionTitle(config, variables) {
+  const pattern = config.sectionTitlePattern || "{sectionNumber}. {pageName}";
+  if (/^\s*\{sectionNumber\}/.test(pattern)) {
+    const text = format(pattern.replace("{sectionNumber}", ""), variables);
+    return { numbering: { reference: "chrono-sections", level: 0 }, children: [new TextRun(text)] };
+  }
+  const parts = pattern.split("{sectionNumber}");
+  return {
+    children: parts.flatMap((part, index) => [
+      ...(index
+        ? [new SimpleField("SEQ ChronoSection \\* ARABIC", String(variables.sectionNumber))]
+        : []),
+      ...(format(part, variables) ? [new TextRun(format(part, variables))] : []),
+    ]),
+  };
+}
+
 function alignment(value) {
   return (
     {
@@ -134,6 +153,29 @@ function description(config, step) {
   });
 }
 
+function textSource(config, step, source) {
+  if (source === "sequence") return String(step.sequence);
+  if (source === "component-name") return step.component?.name || "Componente sem nome";
+  if (source === "action") return step.action || "";
+  if (source === "editable") return step.description || "";
+  if (source === "auto-description") return description(config, step);
+  if (source === "url") return step.page?.url || "";
+  if (source === "page-title") return step.page?.pageName || "";
+  if (source === "timestamp")
+    return step.timestamp ? new Date(step.timestamp).toLocaleString("pt-BR") : "";
+  if (source === "value") return step.value || "";
+  if (source.startsWith("fixed-text:")) return source.slice(11);
+  return "";
+}
+
+function numberingReference(alignmentValue) {
+  return alignmentValue === "right"
+    ? "chrono-steps-right"
+    : alignmentValue === "center"
+      ? "chrono-steps-center"
+      : "chrono-steps-left";
+}
+
 function asset(assets, path) {
   return bytesFromDataUrl(path ? assets[path] : null);
 }
@@ -167,6 +209,51 @@ async function descriptionRuns(config, theme, assets, step) {
   return runs;
 }
 
+async function columnRuns(config, theme, assets, step, sources) {
+  const runs = [];
+  for (const source of sources) {
+    if (source === "microprint") {
+      const microRuns = await descriptionRuns(config, theme, assets, { ...step, description: "" });
+      const image = microRuns.find((run) => run instanceof ImageRun);
+      if (image) {
+        if (runs.length) runs.push(new TextRun("  "));
+        runs.push(image);
+      }
+      continue;
+    }
+    const value = textSource(config, step, source);
+    if (!value) continue;
+    if (runs.length) runs.push(new TextRun(" "));
+    if (source === "component-name")
+      runs.push(
+        new TextRun({
+          text: value,
+          bold: theme.componentBold !== false,
+          color: step.component?.role === "link" ? theme.linkColor : theme.componentColor,
+        }),
+      );
+    else if (
+      source === "auto-description" &&
+      step.component?.role === "link" &&
+      step.component?.textOnlyLink
+    ) {
+      const name = step.component.name || "link";
+      const position = value.indexOf(name);
+      if (position < 0) runs.push(new TextRun({ text: value, color: theme.linkColor }));
+      else {
+        if (position) runs.push(new TextRun(value.slice(0, position)));
+        runs.push(new TextRun({ text: name, color: theme.linkColor, underline: {} }));
+        if (position + name.length < value.length)
+          runs.push(new TextRun(value.slice(position + name.length)));
+      }
+    } else
+      runs.push(
+        new TextRun({ text: value, color: source === "url" ? theme.linkColor : undefined }),
+      );
+  }
+  return runs;
+}
+
 async function stepsTable(config, theme, assets, steps) {
   const columns = config.columns || ChronoDefaults.columns;
   const total = columns.reduce((sum, column) => sum + Number(column.width || 1), 0);
@@ -193,12 +280,14 @@ async function stepsTable(config, theme, assets, steps) {
       ),
     }),
   ];
-  for (const [stepIndex, step] of steps.entries()) {
+  for (const step of steps) {
     const cells = [];
     for (const [columnIndex, column] of columns.entries()) {
       const sources = Array.isArray(column.source) ? column.source : [column.source];
       const number = sources.includes("sequence");
       const rule = layoutFor(config, step.action);
+      const runs = number ? [] : await columnRuns(config, theme, assets, step, sources);
+      if (rule.tabs && !number) runs.unshift(new TextRun("\t".repeat(rule.tabs)));
       cells.push(
         new TableCell({
           width: { size: widths[columnIndex], type: WidthType.DXA },
@@ -208,13 +297,11 @@ async function stepsTable(config, theme, assets, steps) {
             new Paragraph({
               style: number ? "ChronoStepNumber" : "ChronoStepDescription",
               alignment: alignment(column.alignment),
+              ...(number
+                ? { numbering: { reference: numberingReference(column.alignment), level: 0 } }
+                : {}),
               spacing: { before: rule.before * 240, after: rule.after * 240 },
-              children: number
-                ? [new TextRun({ text: `${stepIndex + 1}.`, bold: true })]
-                : [
-                    new TextRun("\t".repeat(rule.tabs)),
-                    ...(await descriptionRuns(config, theme, assets, step)),
-                  ],
+              children: runs,
             }),
           ],
         }),
@@ -224,9 +311,14 @@ async function stepsTable(config, theme, assets, steps) {
   }
   return new Table({
     layout: "fixed",
-    style: "ChronoStepsTable",
     width: { size: 9360, type: WidthType.DXA },
     columnWidths: widths,
+    borders: Object.fromEntries(
+      ["top", "bottom", "left", "right", "insideHorizontal", "insideVertical"].map((side) => [
+        side,
+        { style: BorderStyle.SINGLE, size: 8, color: theme.tableBorderColor || "111111" },
+      ]),
+    ),
     rows,
   });
 }
@@ -308,18 +400,12 @@ export async function generateDocx(session, assets) {
     const regular = steps.filter((step) => step.action !== "observation");
     const page = group.page || steps[0].page;
     const pageName = page?.pageName || "Página";
+    const variables = { sectionNumber: section, screenNumber: 1, tableNumber: 1, pageName };
     children.push(
       new Paragraph({
         style: "ChronoSectionTitle",
         heading: HeadingLevel.HEADING_1,
-        children: [
-          new TextRun(
-            format(config.sectionTitlePattern || "{sectionNumber}. {pageName}", {
-              sectionNumber: section,
-              pageName,
-            }),
-          ),
-        ],
+        ...sectionTitle(config, variables),
       }),
     );
     for (const [index, observation] of observations.entries()) {
@@ -425,17 +511,32 @@ export async function generateDocx(session, assets) {
           ],
         }),
       );
+      if (config.showScreenshotCaption !== false)
+        children.push(
+          new Paragraph({
+            style: "ChronoCaption",
+            children: [
+              new TextRun(
+                format(
+                  config.screenshotCaptionPattern ||
+                    "Figura {sectionNumber}.{screenNumber} — {pageName}",
+                  variables,
+                ),
+              ),
+            ],
+          }),
+        );
     }
     if (!regular.length) continue;
     if (config.stepPresentation === "text") {
-      for (const [index, step] of regular.entries()) {
+      for (const step of regular) {
         const rule = layoutFor(config, step.action);
         children.push(
           new Paragraph({
             style: "ChronoStepDescription",
+            numbering: { reference: "chrono-text-steps", level: 0 },
             spacing: { before: rule.before * 240, after: Math.max(120, rule.after * 240) },
             children: [
-              new TextRun({ text: `${index + 1}. `, bold: true }),
               new TextRun("\t".repeat(rule.tabs)),
               ...(await descriptionRuns(config, theme, assets, step)),
             ],
@@ -444,6 +545,21 @@ export async function generateDocx(session, assets) {
       }
     } else {
       const rule = layoutFor(config, "table");
+      if (config.showTableCaption !== false)
+        children.push(
+          new Paragraph({
+            style: "ChronoTableCaption",
+            children: [
+              new TextRun(
+                format(
+                  config.tableCaptionPattern ||
+                    "Tabela {sectionNumber}.{tableNumber} — Passos de {pageName}",
+                  variables,
+                ),
+              ),
+            ],
+          }),
+        );
       if (rule.before)
         children.push(new Paragraph({ spacing: { after: rule.before * 240 }, children: [] }));
       children.push(await stepsTable(config, theme, assets, regular));
@@ -455,11 +571,70 @@ export async function generateDocx(session, assets) {
       );
     }
   }
+  const columns = config.columns || ChronoDefaults.columns;
+  const totalWidth = columns.reduce((sum, column) => sum + Number(column.width || 1), 0);
+  const numberColumn = columns.find((column) =>
+    (Array.isArray(column.source) ? column.source : [column.source]).includes("sequence"),
+  );
+  const stepWidth = Math.round((9360 * Number(numberColumn?.width || 12)) / totalWidth);
+  const numberLevel = (alignmentValue, left) => ({
+    level: 0,
+    format: "decimal",
+    text: "%1",
+    suffix: "nothing",
+    alignment: alignmentValue,
+    style: {
+      paragraph: { indent: { left, hanging: 0 }, spacing: { before: 40, after: 40 } },
+      run: { bold: true, size: 22, font },
+    },
+  });
   const doc = new Document({
     creator: "ChronoClick Recorder",
     title: ChronoPolicy.documentTitle(session),
     description: "Procedimento gerado a partir de uma sessão ChronoClick.",
     features: { updateFields: true },
+    numbering: {
+      config: [
+        {
+          reference: "chrono-sections",
+          levels: [
+            {
+              level: 0,
+              format: "decimal",
+              text: "%1",
+              suffix: "nothing",
+              alignment: AlignmentType.LEFT,
+              style: { paragraph: { indent: { left: 0, hanging: 0 } } },
+            },
+          ],
+        },
+        { reference: "chrono-steps-left", levels: [numberLevel(AlignmentType.LEFT, 0)] },
+        {
+          reference: "chrono-steps-center",
+          levels: [numberLevel(AlignmentType.CENTER, Math.max(0, Math.round(stepWidth / 2) - 120))],
+        },
+        {
+          reference: "chrono-steps-right",
+          levels: [numberLevel(AlignmentType.RIGHT, Math.max(0, stepWidth - 240))],
+        },
+        {
+          reference: "chrono-text-steps",
+          levels: [
+            {
+              level: 0,
+              format: "decimal",
+              text: "%1.",
+              suffix: "tab",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: { indent: { left: 360, hanging: 240 } },
+                run: { bold: true, size: 22, font },
+              },
+            },
+          ],
+        },
+      ],
+    },
     styles: {
       paragraphStyles: [
         paragraphStyle("ChronoDocumentTitle", "ChronoClick - Título do Documento", {
@@ -477,6 +652,13 @@ export async function generateDocx(session, assets) {
         paragraphStyle("ChronoScreen", "ChronoClick - Print da Tela", {
           paragraph: { alignment: AlignmentType.CENTER },
         }),
+        paragraphStyle("ChronoCaption", "ChronoClick - Legenda do Print", {
+          run: { font, size: 18, color: "5B6472", italics: true },
+          paragraph: {
+            alignment: AlignmentType.CENTER,
+            spacing: { after: (theme.screenAfter || 12) * 20 },
+          },
+        }),
         paragraphStyle("ChronoObservation", "ChronoClick - Explicação da Observação", {
           run: { font, size: (theme.bodyFontSize || 11) * 2 },
           paragraph: { spacing: { before: 160, after: 100 }, keepNext: true },
@@ -486,6 +668,10 @@ export async function generateDocx(session, assets) {
         }),
         paragraphStyle("ChronoTableHeader", "ChronoClick - Cabeçalho da Tabela", {
           run: { font, size: 20, bold: true, color: theme.tableHeaderColor || "FFFFFF" },
+        }),
+        paragraphStyle("ChronoTableCaption", "ChronoClick - Legenda da Tabela", {
+          run: { font, size: 19, bold: true, color: theme.headingColor || "111827" },
+          paragraph: { spacing: { before: (theme.tableBefore || 8) * 20, after: 80 } },
         }),
         paragraphStyle("ChronoStepNumber", "ChronoClick - Número do Passo", {
           run: { font, size: 22, bold: true },

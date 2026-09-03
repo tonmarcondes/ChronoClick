@@ -4657,7 +4657,7 @@
     module.exports = require_function_bind().call(call, $hasOwn);
   }));
   var require_get_intrinsic = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-    var undefined;
+    var undefined2;
     var $Object = require_es_object_atoms();
     var $Error = require_es_errors();
     var $EvalError = require_eval();
@@ -4704,24 +4704,24 @@
     var $apply = require_functionApply();
     var $call = require_functionCall();
     var needsEval = {};
-    var TypedArray = typeof Uint8Array === "undefined" || !getProto ? undefined : getProto(Uint8Array);
+    var TypedArray = typeof Uint8Array === "undefined" || !getProto ? undefined2 : getProto(Uint8Array);
     var INTRINSICS = {
       __proto__: null,
-      "%AggregateError%": typeof AggregateError === "undefined" ? undefined : AggregateError,
+      "%AggregateError%": typeof AggregateError === "undefined" ? undefined2 : AggregateError,
       "%Array%": Array,
-      "%ArrayBuffer%": typeof ArrayBuffer === "undefined" ? undefined : ArrayBuffer,
-      "%ArrayIteratorPrototype%": hasSymbols && getProto ? getProto([][Symbol.iterator]()) : undefined,
-      "%AsyncFromSyncIteratorPrototype%": undefined,
+      "%ArrayBuffer%": typeof ArrayBuffer === "undefined" ? undefined2 : ArrayBuffer,
+      "%ArrayIteratorPrototype%": hasSymbols && getProto ? getProto([][Symbol.iterator]()) : undefined2,
+      "%AsyncFromSyncIteratorPrototype%": undefined2,
       "%AsyncFunction%": needsEval,
       "%AsyncGenerator%": needsEval,
       "%AsyncGeneratorFunction%": needsEval,
       "%AsyncIteratorPrototype%": needsEval,
-      "%Atomics%": typeof Atomics === "undefined" ? undefined : Atomics,
-      "%BigInt%": typeof BigInt === "undefined" ? undefined : BigInt,
-      "%BigInt64Array%": typeof BigInt64Array === "undefined" ? undefined : BigInt64Array,
-      "%BigUint64Array%": typeof BigUint64Array === "undefined" ? undefined : BigUint64Array,
+      "%Atomics%": typeof Atomics === "undefined" ? undefined2 : Atomics,
+      "%BigInt%": typeof BigInt === "undefined" ? undefined2 : BigInt,
+      "%BigInt64Array%": typeof BigInt64Array === "undefined" ? undefined2 : BigInt64Array,
+      "%BigUint64Array%": typeof BigUint64Array === "undefined" ? undefined2 : BigUint64Array,
       "%Boolean%": Boolean,
-      "%DataView%": typeof DataView === "undefined" ? undefined : DataView,
+      "%DataView%": typeof DataView === "undefined" ? undefined2 : DataView,
       "%Date%": Date,
       "%decodeURI%": decodeURI,
       "%decodeURIComponent%": decodeURIComponent,
@@ -4730,51 +4730,51 @@
       "%Error%": $Error,
       "%eval%": eval,
       "%EvalError%": $EvalError,
-      "%Float16Array%": typeof Float16Array === "undefined" ? undefined : Float16Array,
-      "%Float32Array%": typeof Float32Array === "undefined" ? undefined : Float32Array,
-      "%Float64Array%": typeof Float64Array === "undefined" ? undefined : Float64Array,
-      "%FinalizationRegistry%": typeof FinalizationRegistry === "undefined" ? undefined : FinalizationRegistry,
+      "%Float16Array%": typeof Float16Array === "undefined" ? undefined2 : Float16Array,
+      "%Float32Array%": typeof Float32Array === "undefined" ? undefined2 : Float32Array,
+      "%Float64Array%": typeof Float64Array === "undefined" ? undefined2 : Float64Array,
+      "%FinalizationRegistry%": typeof FinalizationRegistry === "undefined" ? undefined2 : FinalizationRegistry,
       "%Function%": $Function,
       "%GeneratorFunction%": needsEval,
-      "%Int8Array%": typeof Int8Array === "undefined" ? undefined : Int8Array,
-      "%Int16Array%": typeof Int16Array === "undefined" ? undefined : Int16Array,
-      "%Int32Array%": typeof Int32Array === "undefined" ? undefined : Int32Array,
+      "%Int8Array%": typeof Int8Array === "undefined" ? undefined2 : Int8Array,
+      "%Int16Array%": typeof Int16Array === "undefined" ? undefined2 : Int16Array,
+      "%Int32Array%": typeof Int32Array === "undefined" ? undefined2 : Int32Array,
       "%isFinite%": isFinite,
       "%isNaN%": isNaN,
-      "%IteratorPrototype%": hasSymbols && getProto ? getProto(getProto([][Symbol.iterator]())) : undefined,
-      "%JSON%": typeof JSON === "object" ? JSON : undefined,
-      "%Map%": typeof Map === "undefined" ? undefined : Map,
-      "%MapIteratorPrototype%": typeof Map === "undefined" || !hasSymbols || !getProto ? undefined : getProto((/* @__PURE__ */ new Map())[Symbol.iterator]()),
+      "%IteratorPrototype%": hasSymbols && getProto ? getProto(getProto([][Symbol.iterator]())) : undefined2,
+      "%JSON%": typeof JSON === "object" ? JSON : undefined2,
+      "%Map%": typeof Map === "undefined" ? undefined2 : Map,
+      "%MapIteratorPrototype%": typeof Map === "undefined" || !hasSymbols || !getProto ? undefined2 : getProto((/* @__PURE__ */ new Map())[Symbol.iterator]()),
       "%Math%": Math,
       "%Number%": Number,
       "%Object%": $Object,
       "%Object.getOwnPropertyDescriptor%": $gOPD,
       "%parseFloat%": parseFloat,
       "%parseInt%": parseInt,
-      "%Promise%": typeof Promise === "undefined" ? undefined : Promise,
-      "%Proxy%": typeof Proxy === "undefined" ? undefined : Proxy,
+      "%Promise%": typeof Promise === "undefined" ? undefined2 : Promise,
+      "%Proxy%": typeof Proxy === "undefined" ? undefined2 : Proxy,
       "%RangeError%": $RangeError,
       "%ReferenceError%": $ReferenceError,
-      "%Reflect%": typeof Reflect === "undefined" ? undefined : Reflect,
+      "%Reflect%": typeof Reflect === "undefined" ? undefined2 : Reflect,
       "%RegExp%": RegExp,
-      "%Set%": typeof Set === "undefined" ? undefined : Set,
-      "%SetIteratorPrototype%": typeof Set === "undefined" || !hasSymbols || !getProto ? undefined : getProto((/* @__PURE__ */ new Set())[Symbol.iterator]()),
-      "%SharedArrayBuffer%": typeof SharedArrayBuffer === "undefined" ? undefined : SharedArrayBuffer,
+      "%Set%": typeof Set === "undefined" ? undefined2 : Set,
+      "%SetIteratorPrototype%": typeof Set === "undefined" || !hasSymbols || !getProto ? undefined2 : getProto((/* @__PURE__ */ new Set())[Symbol.iterator]()),
+      "%SharedArrayBuffer%": typeof SharedArrayBuffer === "undefined" ? undefined2 : SharedArrayBuffer,
       "%String%": String,
-      "%StringIteratorPrototype%": hasSymbols && getProto ? getProto(""[Symbol.iterator]()) : undefined,
-      "%Symbol%": hasSymbols ? Symbol : undefined,
+      "%StringIteratorPrototype%": hasSymbols && getProto ? getProto(""[Symbol.iterator]()) : undefined2,
+      "%Symbol%": hasSymbols ? Symbol : undefined2,
       "%SyntaxError%": $SyntaxError,
       "%ThrowTypeError%": ThrowTypeError,
       "%TypedArray%": TypedArray,
       "%TypeError%": $TypeError,
-      "%Uint8Array%": typeof Uint8Array === "undefined" ? undefined : Uint8Array,
-      "%Uint8ClampedArray%": typeof Uint8ClampedArray === "undefined" ? undefined : Uint8ClampedArray,
-      "%Uint16Array%": typeof Uint16Array === "undefined" ? undefined : Uint16Array,
-      "%Uint32Array%": typeof Uint32Array === "undefined" ? undefined : Uint32Array,
+      "%Uint8Array%": typeof Uint8Array === "undefined" ? undefined2 : Uint8Array,
+      "%Uint8ClampedArray%": typeof Uint8ClampedArray === "undefined" ? undefined2 : Uint8ClampedArray,
+      "%Uint16Array%": typeof Uint16Array === "undefined" ? undefined2 : Uint16Array,
+      "%Uint32Array%": typeof Uint32Array === "undefined" ? undefined2 : Uint32Array,
       "%URIError%": $URIError,
-      "%WeakMap%": typeof WeakMap === "undefined" ? undefined : WeakMap,
-      "%WeakRef%": typeof WeakRef === "undefined" ? undefined : WeakRef,
-      "%WeakSet%": typeof WeakSet === "undefined" ? undefined : WeakSet,
+      "%WeakMap%": typeof WeakMap === "undefined" ? undefined2 : WeakMap,
+      "%WeakRef%": typeof WeakRef === "undefined" ? undefined2 : WeakRef,
+      "%WeakSet%": typeof WeakSet === "undefined" ? undefined2 : WeakSet,
       "%Function.prototype.call%": $call,
       "%Function.prototype.apply%": $apply,
       "%Object.defineProperty%": $defineProperty,
@@ -13279,6 +13279,19 @@
       return super.prepForXml(context);
     }
   };
+  var FldSimpleAttrs = class extends XmlAttributeComponent {
+    constructor(..._args) {
+      super(..._args);
+      _defineProperty(this, "xmlKeys", { instr: "w:instr" });
+    }
+  };
+  var SimpleField = class extends XmlComponent {
+    constructor(instruction, cachedValue) {
+      super("w:fldSimple");
+      this.root.push(new FldSimpleAttrs({ instr: instruction }));
+      if (cachedValue !== void 0) this.root.push(new TextRun(cachedValue));
+    }
+  };
   var RelationshipsAttributes = class extends XmlAttributeComponent {
     constructor(..._args) {
       super(..._args);
@@ -21704,6 +21717,20 @@
   function format(pattern, variables) {
     return String(pattern || "").replace(/\{([^}]+)\}/g, (_, key) => variables[key] ?? "");
   }
+  function sectionTitle(config, variables) {
+    const pattern = config.sectionTitlePattern || "{sectionNumber}. {pageName}";
+    if (/^\s*\{sectionNumber\}/.test(pattern)) {
+      const text = format(pattern.replace("{sectionNumber}", ""), variables);
+      return { numbering: { reference: "chrono-sections", level: 0 }, children: [new TextRun(text)] };
+    }
+    const parts = pattern.split("{sectionNumber}");
+    return {
+      children: parts.flatMap((part, index) => [
+        ...index ? [new SimpleField("SEQ ChronoSection \\* ARABIC", String(variables.sectionNumber))] : [],
+        ...format(part, variables) ? [new TextRun(format(part, variables))] : []
+      ])
+    };
+  }
   function alignment(value) {
     return {
       center: AlignmentType.CENTER,
@@ -21747,6 +21774,23 @@
       action: text ? text[0].toLowerCase() + text.slice(1) : "continue."
     });
   }
+  function textSource(config, step, source) {
+    if (source === "sequence") return String(step.sequence);
+    if (source === "component-name") return step.component?.name || "Componente sem nome";
+    if (source === "action") return step.action || "";
+    if (source === "editable") return step.description || "";
+    if (source === "auto-description") return description(config, step);
+    if (source === "url") return step.page?.url || "";
+    if (source === "page-title") return step.page?.pageName || "";
+    if (source === "timestamp")
+      return step.timestamp ? new Date(step.timestamp).toLocaleString("pt-BR") : "";
+    if (source === "value") return step.value || "";
+    if (source.startsWith("fixed-text:")) return source.slice(11);
+    return "";
+  }
+  function numberingReference(alignmentValue) {
+    return alignmentValue === "right" ? "chrono-steps-right" : alignmentValue === "center" ? "chrono-steps-center" : "chrono-steps-left";
+  }
   function asset(assets, path) {
     return bytesFromDataUrl(path ? assets[path] : null);
   }
@@ -21775,6 +21819,46 @@
     }
     return runs;
   }
+  async function columnRuns(config, theme, assets, step, sources) {
+    const runs = [];
+    for (const source of sources) {
+      if (source === "microprint") {
+        const microRuns = await descriptionRuns(config, theme, assets, { ...step, description: "" });
+        const image = microRuns.find((run) => run instanceof ImageRun);
+        if (image) {
+          if (runs.length) runs.push(new TextRun("  "));
+          runs.push(image);
+        }
+        continue;
+      }
+      const value = textSource(config, step, source);
+      if (!value) continue;
+      if (runs.length) runs.push(new TextRun(" "));
+      if (source === "component-name")
+        runs.push(
+          new TextRun({
+            text: value,
+            bold: theme.componentBold !== false,
+            color: step.component?.role === "link" ? theme.linkColor : theme.componentColor
+          })
+        );
+      else if (source === "auto-description" && step.component?.role === "link" && step.component?.textOnlyLink) {
+        const name = step.component.name || "link";
+        const position = value.indexOf(name);
+        if (position < 0) runs.push(new TextRun({ text: value, color: theme.linkColor }));
+        else {
+          if (position) runs.push(new TextRun(value.slice(0, position)));
+          runs.push(new TextRun({ text: name, color: theme.linkColor, underline: {} }));
+          if (position + name.length < value.length)
+            runs.push(new TextRun(value.slice(position + name.length)));
+        }
+      } else
+        runs.push(
+          new TextRun({ text: value, color: source === "url" ? theme.linkColor : void 0 })
+        );
+    }
+    return runs;
+  }
   async function stepsTable(config, theme, assets, steps) {
     const columns = config.columns || ChronoDefaults.columns;
     const total = columns.reduce((sum, column) => sum + Number(column.width || 1), 0);
@@ -21800,12 +21884,14 @@
         )
       })
     ];
-    for (const [stepIndex, step] of steps.entries()) {
+    for (const step of steps) {
       const cells = [];
       for (const [columnIndex, column] of columns.entries()) {
         const sources = Array.isArray(column.source) ? column.source : [column.source];
         const number = sources.includes("sequence");
         const rule = layoutFor(config, step.action);
+        const runs = number ? [] : await columnRuns(config, theme, assets, step, sources);
+        if (rule.tabs && !number) runs.unshift(new TextRun("	".repeat(rule.tabs)));
         cells.push(
           new TableCell({
             width: { size: widths[columnIndex], type: WidthType.DXA },
@@ -21815,11 +21901,9 @@
               new Paragraph({
                 style: number ? "ChronoStepNumber" : "ChronoStepDescription",
                 alignment: alignment(column.alignment),
+                ...number ? { numbering: { reference: numberingReference(column.alignment), level: 0 } } : {},
                 spacing: { before: rule.before * 240, after: rule.after * 240 },
-                children: number ? [new TextRun({ text: `${stepIndex + 1}.`, bold: true })] : [
-                  new TextRun("	".repeat(rule.tabs)),
-                  ...await descriptionRuns(config, theme, assets, step)
-                ]
+                children: runs
               })
             ]
           })
@@ -21829,9 +21913,14 @@
     }
     return new Table({
       layout: "fixed",
-      style: "ChronoStepsTable",
       width: { size: 9360, type: WidthType.DXA },
       columnWidths: widths,
+      borders: Object.fromEntries(
+        ["top", "bottom", "left", "right", "insideHorizontal", "insideVertical"].map((side) => [
+          side,
+          { style: BorderStyle.SINGLE, size: 8, color: theme.tableBorderColor || "111111" }
+        ])
+      ),
       rows
     });
   }
@@ -21900,18 +21989,12 @@
       const regular = steps.filter((step) => step.action !== "observation");
       const page = group.page || steps[0].page;
       const pageName = page?.pageName || "P\xE1gina";
+      const variables = { sectionNumber: section, screenNumber: 1, tableNumber: 1, pageName };
       children.push(
         new Paragraph({
           style: "ChronoSectionTitle",
           heading: HeadingLevel.HEADING_1,
-          children: [
-            new TextRun(
-              format(config.sectionTitlePattern || "{sectionNumber}. {pageName}", {
-                sectionNumber: section,
-                pageName
-              })
-            )
-          ]
+          ...sectionTitle(config, variables)
         })
       );
       for (const [index, observation] of observations.entries()) {
@@ -22011,17 +22094,31 @@
             ]
           })
         );
+        if (config.showScreenshotCaption !== false)
+          children.push(
+            new Paragraph({
+              style: "ChronoCaption",
+              children: [
+                new TextRun(
+                  format(
+                    config.screenshotCaptionPattern || "Figura {sectionNumber}.{screenNumber} \u2014 {pageName}",
+                    variables
+                  )
+                )
+              ]
+            })
+          );
       }
       if (!regular.length) continue;
       if (config.stepPresentation === "text") {
-        for (const [index, step] of regular.entries()) {
+        for (const step of regular) {
           const rule = layoutFor(config, step.action);
           children.push(
             new Paragraph({
               style: "ChronoStepDescription",
+              numbering: { reference: "chrono-text-steps", level: 0 },
               spacing: { before: rule.before * 240, after: Math.max(120, rule.after * 240) },
               children: [
-                new TextRun({ text: `${index + 1}. `, bold: true }),
                 new TextRun("	".repeat(rule.tabs)),
                 ...await descriptionRuns(config, theme, assets, step)
               ]
@@ -22030,6 +22127,20 @@
         }
       } else {
         const rule = layoutFor(config, "table");
+        if (config.showTableCaption !== false)
+          children.push(
+            new Paragraph({
+              style: "ChronoTableCaption",
+              children: [
+                new TextRun(
+                  format(
+                    config.tableCaptionPattern || "Tabela {sectionNumber}.{tableNumber} \u2014 Passos de {pageName}",
+                    variables
+                  )
+                )
+              ]
+            })
+          );
         if (rule.before)
           children.push(new Paragraph({ spacing: { after: rule.before * 240 }, children: [] }));
         children.push(await stepsTable(config, theme, assets, regular));
@@ -22041,11 +22152,70 @@
         );
       }
     }
+    const columns = config.columns || ChronoDefaults.columns;
+    const totalWidth = columns.reduce((sum, column) => sum + Number(column.width || 1), 0);
+    const numberColumn = columns.find(
+      (column) => (Array.isArray(column.source) ? column.source : [column.source]).includes("sequence")
+    );
+    const stepWidth = Math.round(9360 * Number(numberColumn?.width || 12) / totalWidth);
+    const numberLevel = (alignmentValue, left) => ({
+      level: 0,
+      format: "decimal",
+      text: "%1",
+      suffix: "nothing",
+      alignment: alignmentValue,
+      style: {
+        paragraph: { indent: { left, hanging: 0 }, spacing: { before: 40, after: 40 } },
+        run: { bold: true, size: 22, font }
+      }
+    });
     const doc = new File({
       creator: "ChronoClick Recorder",
       title: ChronoPolicy.documentTitle(session),
       description: "Procedimento gerado a partir de uma sess\xE3o ChronoClick.",
       features: { updateFields: true },
+      numbering: {
+        config: [
+          {
+            reference: "chrono-sections",
+            levels: [
+              {
+                level: 0,
+                format: "decimal",
+                text: "%1",
+                suffix: "nothing",
+                alignment: AlignmentType.LEFT,
+                style: { paragraph: { indent: { left: 0, hanging: 0 } } }
+              }
+            ]
+          },
+          { reference: "chrono-steps-left", levels: [numberLevel(AlignmentType.LEFT, 0)] },
+          {
+            reference: "chrono-steps-center",
+            levels: [numberLevel(AlignmentType.CENTER, Math.max(0, Math.round(stepWidth / 2) - 120))]
+          },
+          {
+            reference: "chrono-steps-right",
+            levels: [numberLevel(AlignmentType.RIGHT, Math.max(0, stepWidth - 240))]
+          },
+          {
+            reference: "chrono-text-steps",
+            levels: [
+              {
+                level: 0,
+                format: "decimal",
+                text: "%1.",
+                suffix: "tab",
+                alignment: AlignmentType.LEFT,
+                style: {
+                  paragraph: { indent: { left: 360, hanging: 240 } },
+                  run: { bold: true, size: 22, font }
+                }
+              }
+            ]
+          }
+        ]
+      },
       styles: {
         paragraphStyles: [
           paragraphStyle("ChronoDocumentTitle", "ChronoClick - T\xEDtulo do Documento", {
@@ -22063,6 +22233,13 @@
           paragraphStyle("ChronoScreen", "ChronoClick - Print da Tela", {
             paragraph: { alignment: AlignmentType.CENTER }
           }),
+          paragraphStyle("ChronoCaption", "ChronoClick - Legenda do Print", {
+            run: { font, size: 18, color: "5B6472", italics: true },
+            paragraph: {
+              alignment: AlignmentType.CENTER,
+              spacing: { after: (theme.screenAfter || 12) * 20 }
+            }
+          }),
           paragraphStyle("ChronoObservation", "ChronoClick - Explica\xE7\xE3o da Observa\xE7\xE3o", {
             run: { font, size: (theme.bodyFontSize || 11) * 2 },
             paragraph: { spacing: { before: 160, after: 100 }, keepNext: true }
@@ -22072,6 +22249,10 @@
           }),
           paragraphStyle("ChronoTableHeader", "ChronoClick - Cabe\xE7alho da Tabela", {
             run: { font, size: 20, bold: true, color: theme.tableHeaderColor || "FFFFFF" }
+          }),
+          paragraphStyle("ChronoTableCaption", "ChronoClick - Legenda da Tabela", {
+            run: { font, size: 19, bold: true, color: theme.headingColor || "111827" },
+            paragraph: { spacing: { before: (theme.tableBefore || 8) * 20, after: 80 } }
           }),
           paragraphStyle("ChronoStepNumber", "ChronoClick - N\xFAmero do Passo", {
             run: { font, size: 22, bold: true }
