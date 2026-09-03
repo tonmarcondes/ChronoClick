@@ -360,12 +360,15 @@ $("documentLink").onclick = async (event) => {
   }
 };
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type !== "SESSION_STARTED") return;
+  if (!["SESSION_STARTED", "SESSION_CLEARED"].includes(message.type)) return;
   session = { steps: [], groups: [], captureFailures: [], config: session.config };
   $("captureWarnings").textContent = "";
   $("documentLink").hidden = true;
   renderSteps();
-  $("status").textContent = "Nova gravação iniciada. Os eventos e avisos anteriores foram limpos.";
+  $("status").textContent =
+    message.type === "SESSION_STARTED"
+      ? "Nova gravação iniciada. Os eventos e avisos anteriores foram limpos."
+      : "Documento aberto. Os eventos e o link anterior foram limpos.";
 });
 for (const id of ["printBorderWidth", "printBorderType"]) {
   $(id).oninput = () => {

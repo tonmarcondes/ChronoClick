@@ -185,6 +185,19 @@ async function updateActionBadge() {
     title: count ? `ChronoClick — ${count} print(s) criado(s)` : "ChronoClick Recorder",
   });
 }
+async function clearCompletedSession() {
+  const completedProjectId = project?.id;
+  project = null;
+  session = null;
+  recorderState = "idle";
+  captureQueue = Promise.resolve();
+  eventQueue = Promise.resolve();
+  lastCaptureAt = 0;
+  await saveState();
+  if (completedProjectId) await removeProjectAssets(completedProjectId);
+  Promise.resolve(chrome.runtime.sendMessage?.({ type: "SESSION_CLEARED" })).catch(() => {});
+  await broadcastState();
+}
 async function broadcastState() {
   for (const tab of await chrome.tabs.query({}))
     if (tab.id && /^https?:|^file:/.test(tab.url || ""))
@@ -614,6 +627,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "OPEN_DOCX") {
       if (!session?.document?.downloadId) throw new Error("Gere o DOCX antes de abri-lo.");
       await chrome.downloads.open(session.document.downloadId);
+      await clearCompletedSession();
       return { ok: true };
     }
     if (message.type === "GENERATE_DOCX") {

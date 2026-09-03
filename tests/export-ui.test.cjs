@@ -139,7 +139,8 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 
   let listener, finishGeneration;
   const actionBadges = [],
-    openedDownloads = [];
+    openedDownloads = [],
+    removedProjects = [];
   const bg = vm.createContext({
     console,
     crypto: require("node:crypto"),
@@ -187,6 +188,7 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
     `project={id:'project',root:'local'};session={config:{},steps:[{id:'1'}],groups:[]};recorderState='finished';generateAndDownloadDocx=()=>hostCall('generateDocx');`,
     bg,
   );
+  bg.removeProjectAssets = async (projectId) => removedProjects.push(projectId);
   const send = (type, extra = {}) =>
     new Promise((resolve) => listener({ type, ...extra }, {}, resolve));
   const generating = send("GENERATE_DOCX");
@@ -201,6 +203,10 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   vm.runInContext("session.document.downloadId=42", bg);
   assert.equal((await send("OPEN_DOCX")).ok, true);
   assert.deepEqual(openedDownloads, [42]);
+  assert.deepEqual(removedProjects, ["project"]);
+  assert.equal((await send("GET_STATE")).count, 0);
+  assert.equal((await send("GET_STATE")).project, null);
+  assert.equal(actionBadges.at(-1), "");
   vm.runInContext(
     `project={id:'project-2',root:'local'};session={config:{},steps:[{id:'1'}],groups:[],captureFailures:[]};recorderState='finished';`,
     bg,
