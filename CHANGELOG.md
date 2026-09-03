@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.12.2
+
+- Centralizei corretamente a numeração da coluna STEP no documento.
+- Mostrei no ícone da extensão quantas capturas já foram salvas.
+- Limpei os eventos e o link anterior depois que o documento é aberto.
+- Troquei o ícone antigo pelo novo logo do ChronoClick com fundo transparente.
+
 ## 0.12.1
 
 - Completei no gerador do navegador as colunas configuráveis, legendas e numerações automáticas do Word.

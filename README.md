@@ -2,7 +2,7 @@
 
 Extensão Chromium que transforma uma sequência de interações em um procedimento Word editável, com prints da página, cronocliques, microprints e descrições automáticas.
 
-**Versão:** 0.12.1 · **Plataformas:** Chrome, Edge, Brave e outros navegadores Chromium · **Licença:** [Apache 2.0](LICENSE)
+**Versão:** 0.12.2 · **Plataformas:** Chrome, Edge, Brave e outros navegadores Chromium · **Licença:** [Apache 2.0](LICENSE)
 
 ## O que mudou na versão web
 
