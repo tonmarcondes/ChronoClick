@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 0.12.1
+
+- Completei no gerador do navegador as colunas configuráveis, legendas e numerações automáticas do Word.
+- Mantive os textos, links e microprints editáveis mesmo sem o aplicativo nativo.
+- Validei a geração e a aparência do documento em uma página web real.
+
 ## 0.12.0
 
 - Removi a dependência do aplicativo nativo: gravação, imagens e geração do DOCX agora ficam dentro da extensão.
