@@ -10,7 +10,7 @@
     <main class="review">
       <header>
         <div>
-          <h1>Revisão e configuração</h1>
+          <h1>Revisão e configuração <small id="reviewVersion" class="muted"></small></h1>
           <p class="muted">Edite nomes, descrições, colunas e tema antes de exportar.</p>
         </div>
         <div>
@@ -86,8 +86,8 @@
             </select></label
           >
           <label
-            ><input id="showCaptureErrorsInDocx" type="checkbox" /> Mostrar erros de captura no
-            DOCX</label
+            ><input id="showCaptureErrorsInDocx" type="checkbox" /> Mostrar erros de captura na
+            interface e no DOCX</label
           >
         </div>
         <p class="muted">
@@ -309,6 +309,13 @@
             </select></label
           >
           <label class="field">Cor dos links textuais<input id="linkColor" type="color" /></label>
+          <label class="field"
+            >Fundo do contador no ícone<input id="badgeBackground" type="color"
+          /></label>
+          <label class="field"
+            >Cor do número no ícone<input id="badgeTextColor" type="color"
+          /></label>
+          <label><input id="badgeTransparent" type="checkbox" /> Mostrar somente o número</label>
           <label class="field"
             >Usar cor dos links definida em<select id="linkColorSource">
               <option value="settings">Configuração acima</option>

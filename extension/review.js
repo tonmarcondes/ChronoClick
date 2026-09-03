@@ -98,6 +98,14 @@ function renderColumns() {
   });
 }
 
+function renderCaptureWarnings() {
+  const show = session.config.showCaptureErrorsInDocx !== false;
+  $("captureWarnings").hidden = !show;
+  $("captureWarnings").textContent = show
+    ? (session.captureFailures || []).map((item) => `${item.action}: ${item.error}`).join("\n")
+    : "";
+}
+
 async function renderSteps() {
   $("steps").innerHTML = "";
   if (!session.steps.length)
@@ -185,6 +193,9 @@ function readForm() {
   t.markerBackground = colorOut($("markerBackground").value);
   t.componentColor = colorOut($("componentColor").value);
   t.linkColor = colorOut($("linkColor").value);
+  t.badgeBackground = colorOut($("badgeBackground").value);
+  t.badgeTextColor = colorOut($("badgeTextColor").value);
+  t.badgeTransparent = $("badgeTransparent").checked;
   t.componentBold = $("componentBold").value === "true";
   t.titleAfter = Number($("titleAfter").value);
   t.screenAfter = Number($("screenAfter").value);
@@ -230,9 +241,7 @@ async function load() {
   document
     .querySelectorAll("[data-recording]")
     .forEach((input) => (input.value = String(c.recording?.[input.dataset.recording] ?? "")));
-  $("captureWarnings").textContent = (session.captureFailures || [])
-    .map((item) => `${item.action}: ${item.error}`)
-    .join("\n");
+  renderCaptureWarnings();
   $("documentTitle").value = c.documentTitle;
   $("sectionTitlePattern").value = c.sectionTitlePattern;
   $("screenshotCaptionPattern").value = c.screenshotCaptionPattern;
@@ -262,6 +271,9 @@ async function load() {
   $("markerBackground").value = colorIn(t.markerBackground);
   $("componentColor").value = colorIn(t.componentColor);
   $("linkColor").value = colorIn(t.linkColor || "0563C1");
+  $("badgeBackground").value = colorIn(t.badgeBackground || "16B8BD");
+  $("badgeTextColor").value = colorIn(t.badgeTextColor || "FFFFFF");
+  $("badgeTransparent").checked = t.badgeTransparent === true;
   $("componentBold").value = String(t.componentBold);
   $("titleAfter").value = t.titleAfter;
   $("screenAfter").value = t.screenAfter;
@@ -320,8 +332,10 @@ $("save").onclick = async () => {
 };
 $("generate").onclick = async () => {
   const allowPartial = !!session?.captureFailures?.length;
+  const showCaptureErrors = session.config.showCaptureErrorsInDocx !== false;
   if (
     allowPartial &&
+    showCaptureErrors &&
     !window.confirm(
       `${session.captureFailures.length} captura(s) falharam. Gerar somente os ${session.steps.length} passos salvos, com um aviso no documento?`,
     )
@@ -342,7 +356,12 @@ $("generate").onclick = async () => {
     });
     if (!response?.ok) throw new Error(response?.error || "Falha ao gerar DOCX.");
     $("status").textContent = `DOCX criado em ${response.output}`;
+    session.steps = [];
+    session.groups = [];
+    session.captureFailures = [];
     session.document = response.document;
+    renderSteps();
+    renderCaptureWarnings();
     $("documentLink").hidden = false;
   } catch (error) {
     $("status").textContent = `Erro: ${error.message}`;
@@ -353,7 +372,10 @@ $("generate").onclick = async () => {
 $("documentLink").onclick = async (event) => {
   event.preventDefault();
   try {
-    const result = await chrome.runtime.sendMessage({ type: "OPEN_DOCX" });
+    const result = await chrome.runtime.sendMessage({
+      type: "OPEN_DOCX",
+      downloadId: session.document?.downloadId,
+    });
     if (!result?.ok) throw new Error(result?.error || "Não foi possível abrir o DOCX.");
   } catch (error) {
     $("status").textContent = `Erro: ${error.message}`;
@@ -363,16 +385,22 @@ chrome.runtime.onMessage.addListener((message) => {
   if (!["SESSION_STARTED", "SESSION_CLEARED"].includes(message.type)) return;
   session = { steps: [], groups: [], captureFailures: [], config: session.config };
   $("captureWarnings").textContent = "";
+  $("captureWarnings").hidden = true;
   $("documentLink").hidden = true;
   renderSteps();
   $("status").textContent =
     message.type === "SESSION_STARTED"
       ? "Nova gravação iniciada. Os eventos e avisos anteriores foram limpos."
-      : "Documento aberto. Os eventos e o link anterior foram limpos.";
+      : "Documento gerado. Os eventos anteriores foram limpos.";
 });
+$("showCaptureErrorsInDocx").onchange = () => {
+  session.config.showCaptureErrorsInDocx = $("showCaptureErrorsInDocx").checked;
+  renderCaptureWarnings();
+};
 for (const id of ["printBorderWidth", "printBorderType"]) {
   $(id).oninput = () => {
     $("printBorderEnabled").checked = Number($("printBorderWidth").value) > 0;
   };
 }
+$("reviewVersion").textContent = `v${chrome.runtime.getManifest().version}`;
 load();

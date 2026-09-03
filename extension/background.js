@@ -98,7 +98,7 @@ function migrateConfig(saved = {}) {
       : saved.columns || DEFAULT_CONFIG.columns;
   const migrated = {
     ...saved,
-    configVersion: 10,
+    configVersion: 11,
     columns: legacyColumns.map((column, index) => ({
       ...column,
       alignment: column.alignment || (index === 0 ? "center" : "left"),
@@ -179,7 +179,18 @@ async function saveState() {
 async function updateActionBadge() {
   if (!chrome.action?.setBadgeText) return;
   const count = session?.steps?.length || 0;
-  await chrome.action.setBadgeBackgroundColor({ color: "#16B8BD" });
+  const theme = session?.config?.theme || DEFAULT_CONFIG.theme;
+  const color = (value, fallback) => {
+    const hex = String(value || fallback).replace(/^#/, "");
+    return /^([0-9A-F]{6})$/i.test(hex) ? `#${hex}` : `#${fallback}`;
+  };
+  await chrome.action.setBadgeBackgroundColor({
+    color: theme.badgeTransparent ? [0, 0, 0, 0] : color(theme.badgeBackground, "16B8BD"),
+  });
+  if (chrome.action.setBadgeTextColor)
+    await chrome.action
+      .setBadgeTextColor({ color: color(theme.badgeTextColor, "FFFFFF") })
+      .catch(() => {});
   await chrome.action.setBadgeText({ text: count ? String(count) : "" });
   await chrome.action.setTitle({
     title: count ? `ChronoClick — ${count} print(s) criado(s)` : "ChronoClick Recorder",
@@ -194,7 +205,10 @@ async function clearCompletedSession() {
   eventQueue = Promise.resolve();
   lastCaptureAt = 0;
   await saveState();
-  if (completedProjectId) await removeProjectAssets(completedProjectId);
+  if (completedProjectId)
+    await removeProjectAssets(completedProjectId).catch((error) =>
+      console.warn("Não foi possível remover todas as imagens temporárias.", error),
+    );
   Promise.resolve(chrome.runtime.sendMessage?.({ type: "SESSION_CLEARED" })).catch(() => {});
   await broadcastState();
 }
@@ -498,6 +512,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         count: session?.steps.length || 0,
         project,
         document: session?.document,
+        showCaptureErrors: session?.config?.showCaptureErrorsInDocx !== false,
         recording: session?.config?.recording || DEFAULT_CONFIG.recording,
         failures: session?.captureFailures || [],
         access: await accessStatus(),
@@ -625,9 +640,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true };
     }
     if (message.type === "OPEN_DOCX") {
-      if (!session?.document?.downloadId) throw new Error("Gere o DOCX antes de abri-lo.");
-      await chrome.downloads.open(session.document.downloadId);
-      await clearCompletedSession();
+      const downloadId = message.downloadId || session?.document?.downloadId;
+      if (!downloadId) throw new Error("Gere o DOCX antes de abri-lo.");
+      await chrome.downloads.open(downloadId);
       return { ok: true };
     }
     if (message.type === "GENERATE_DOCX") {
@@ -648,8 +663,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             `${session.captureFailures.length} captura(s) falharam. Confirme a exportação dos passos salvos para continuar.`,
           );
         const result = await generateAndDownloadDocx();
-        session.document = result.document;
-        await saveState();
+        await clearCompletedSession();
         return result;
       } catch (error) {
         session.document = { state: "error", error: error.message };

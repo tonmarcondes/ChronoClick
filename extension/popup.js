@@ -37,9 +37,7 @@ function render() {
   $("resume").hidden = state.state !== "paused";
   $("observe").disabled = $("highlight").disabled = state.state !== "recording";
   $("newProject").hidden = model.canStart || model.recording || (model.disabled && !!state.count);
-  $("documentLink").hidden = newProject || state.document?.state !== "ready";
-  $("documentLink").title = state.document?.output || "";
-  const failures = newProject ? [] : state.failures || [];
+  const failures = newProject || state.showCaptureErrors === false ? [] : state.failures || [];
   $("captureWarnings").hidden = !failures.length;
   $("warningCount").textContent = `${failures.length} captura(s) precisam de atenção`;
   $("warningDetails").textContent = failures.map((item) => item.error).join("\n");
@@ -89,7 +87,6 @@ $("primaryAction").onclick = () =>
   run(async () => {
     const action = ChronoPopup.model(state, newProject).action;
     if (action === "START") {
-      $("documentLink").hidden = true;
       $("documentStatus").textContent = "Conectando à página…";
       await send("START", { name: $("projectName").value.trim() });
       newProject = false;
@@ -99,10 +96,16 @@ $("primaryAction").onclick = () =>
       await send("STOP");
     } else if (action === "GENERATE_DOCX") {
       const latest = await send("GET_STATE");
-      if (latest.failures?.length && !$("allowPartial").checked)
+      if (
+        latest.showCaptureErrors !== false &&
+        latest.failures?.length &&
+        !$("allowPartial").checked
+      )
         throw new Error("Confirme a exportação dos passos salvos ou revise as capturas com falha.");
       $("documentStatus").textContent = "Gerando DOCX…";
-      await send("GENERATE_DOCX", { allowPartial: $("allowPartial").checked });
+      await send("GENERATE_DOCX", {
+        allowPartial: latest.showCaptureErrors === false || $("allowPartial").checked,
+      });
     }
   });
 $("newProject").onclick = () => {
@@ -117,10 +120,6 @@ $("review").onclick = () => {
 };
 $("pause").onclick = () => run(() => send("PAUSE"));
 $("resume").onclick = () => run(() => send("RESUME"));
-$("documentLink").onclick = (event) => {
-  event.preventDefault();
-  return run(() => send("OPEN_DOCX"));
-};
 async function captureTool(type) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("Abra a página que deseja capturar.");

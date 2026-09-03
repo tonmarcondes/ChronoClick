@@ -1,6 +1,6 @@
 // Shared defaults for recording, review, and document generation.
 globalThis.ChronoDefaults = {
-  configVersion: 10,
+  configVersion: 11,
   recording: { ...ChronoPolicy.defaults },
   documentTitle: "Procedimento gravado",
   sectionTitlePattern: "{sectionNumber}. {pageName}",
@@ -68,6 +68,9 @@ globalThis.ChronoDefaults = {
     componentBold: true,
     componentColor: "111827",
     linkColor: "0563C1",
+    badgeBackground: "16B8BD",
+    badgeTextColor: "FFFFFF",
+    badgeTransparent: false,
     titleBefore: 0,
     titleAfter: 18,
     screenBefore: 6,
