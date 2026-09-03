@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChronoClick Recorder",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Registra ações no navegador, prints da tela e microprints dos componentes DOM.",
   "icons": { "16": "icons/chronoclick-16.png", "32": "icons/chronoclick-32.png", "48": "icons/chronoclick-48.png", "128": "icons/chronoclick-128.png" },
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkzokFLL7o43WUSt9gnWZk8r70eNnBhj6DSKIA2vX1keVbDCnwPlSB1EiPxniVPUTI1nT6s64ZT+ImQsR1APzgFLYsoOQVJpwZRaXDpSPSRWQMwDjmECgn5L3LizWIcaSVEDtx+mDHE4ZeLP519lk6IXGd4XGQm51bpi+axQHMCiLyzSmviK0aNe0xmBTafMwj68ggvKLnttITTPT1OJDbRVUbStGs6wrgp5b1mFUq2LVxzLSEtrhcV6q7eymHmvtRDysGIMRQ+zK2bcSazoRdOuKedMRDFA8U1wIGQtCO3Po632STb50KO4D0HQMhMDBfaqmhKCXDjpVp/DEdb+ulwIDAQAB",

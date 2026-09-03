@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.12.3
+
+- Passei a respeitar a opção de ocultar erros também na tela inicial e na revisão.
+- Limpei os passos, avisos e contador assim que o DOCX termina de ser gerado.
+- Removi o link para abrir o Word da tela inicial e mostrei a versão nas configurações.
+- Adicionei cores configuráveis para o fundo e o número do contador no ícone, inclusive sem fundo.
+
 ## 0.12.2
 
 - Centralizei corretamente a numeração da coluna STEP no documento.
